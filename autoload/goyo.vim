@@ -78,7 +78,7 @@ fu! s:tranquilize() abort
     for grp in ['NonText', 'FoldColumn', 'ColorColumn', 'VertSplit',
                 \ 'StatusLine', 'StatusLineNC', 'SignColumn']
         " -1 on Vim / '' on GVim
-        if bg == -1 || empty(bg)
+        if bg ==# -1 || empty(bg)
             call s:set_color(grp, 'fg', get(g:, 'goyo_bg', 'black'))
             call s:set_color(grp, 'bg', 'NONE')
         else
