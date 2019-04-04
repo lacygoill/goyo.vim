@@ -35,7 +35,7 @@ fu! s:setup_pad(bufnr, vert, size, repel) abort
     exe win . 'wincmd w'
     exe (a:vert ? 'vertical ' : '').'resize '.max([0, a:size])
     augroup goyop
-        exe 'autocmd WinEnter,CursorMoved <buffer> nested call s:blank("'.a:repel.'")'
+        exe 'autocmd WinEnter,CursorMoved <buffer> ++nested call s:blank("'.a:repel.'")'
         au WinLeave <buffer> call s:hide_statusline()
     augroup END
 
