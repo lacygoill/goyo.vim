@@ -1,17 +1,131 @@
-fu! s:const(val, min, max) abort
+fu! goyo#island() abort "{{{1
+    let should_collapse =
+        \    line("'<") > 2 && getline(line("'<")-1) =~# '^\s*$' && getline(line("'<")-2) =~# '^\s*$'
+        \ && line("'>") < line('$') - 1 && getline(line("'>")+1) =~# '^\s*$' && getline(line("'>")+2) =~# '^\s*$'
+    if should_collapse
+        " remove superflous empty lines below
+        keepj keepp '>+s/^\%(\_s*\n\)\+/\r/e
+        " same thing above
+        " The order of removal is important.{{{
+        "
+        " We need to remove the empty lines below, before the ones above.
+        " That is because removing the lines  above will change the addresses of
+        " the line below.
+        "}}}
+        keepj keepp '<?^\s*\S?+s/^\%(\_s*\n\)\+/\r/e
+        " the mark set on the start of  the selection has been moved to the next line;
+        " restore it
+        '<-mark <
+    else
+        " add empty lines to clear the view
+        let cnt = winheight(0)/2
+        call append(line("'<")-1, repeat([''], cnt))
+        call append(line("'>"), repeat([''], cnt))
+    endif
+    norm! '<zz
+endfu
+
+fu! goyo#start(how) abort "{{{1
+    let s:goyo_with_highlighting = a:how is# 'with_highlighting' ? 1 : 0
+    exe 'Goyo'.(!exists('#goyo') ? ' 110' : '!')
+endfu
+
+fu! goyo#enter() abort "{{{1
+    sil call system('tmux set status off')
+    " FIXME:
+    " If we have 2  tmux panes in the same window, Vim is  one of them, and it's
+    " not zoomed, when we start goyo mode, we see much less text as usual.
+    " If we have 2 vertical panes, the lines are shorter.
+    " If we have 2 horizontal panes, there are fewer lines.
+    " We probably need to resize the Tmux pane from the plugin, earlier.
+    sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
+    let s:cul_save = &l:cul
+    setl nocursorline
+    set scrolloff=999
+    set noshowcmd
+
+    let s:goyo_cocu_save = &l:concealcursor
+    let s:goyo_cole_save = &l:conceallevel
+    setl concealcursor=nc conceallevel=3
+
+    " FIXME: Find another way to change the shape of the cursor in Neovim.
+    " What about the gui?
+    if !has('gui_running') && !has('nvim')
+        let &t_EI = "\e[4 q"
+        exe "norm! r\e"
+    endif
+
+    let pos = getcurpos()
+    " The new window created by `:tab sp` inherits the window-local options of
+    " the original window. But `:tab sp` doesn't fire `BufWinEnter` so we lose
+    " our position in the changelist.
+    "
+    " FIXME: We should  use the function `s:restore_change_position()`  but it's
+    " local to `vim-window`.
+    sil! exe 'norm! '.(exists('b:my_change_position') ? '99g;' : '99g,')
+        \ .(b:my_change_position - 1) .'g,'
+    call setpos('.', pos)
+
+    if ! get(s:, 'goyo_with_highlighting', 0)
+        let highlight_groups = [
+            \ 'Conditional',
+            \ 'Delimiter',
+            \ 'Function',
+            \ 'Identifier',
+            \ 'MatchParen',
+            \ 'Number',
+            \ 'Operator',
+            \ 'PreProc',
+            \ 'PreProc',
+            \ 'Special',
+            \ 'Statement',
+            \ 'String',
+            \ 'Todo',
+            \ 'Type',
+            \ 'markdownListItem',
+            \ 'snipSnippet',
+            \ ]
+
+        for group in highlight_groups
+            exe 'hi '.group.' term=NONE cterm=NONE ctermfg=NONE ctermbg=NONE gui=NONE guifg=NONE guibg=NONE'
+        endfor
+    endif
+    Limelight
+endfu
+
+fu! goyo#leave() abort "{{{1
+    sil call system('tmux set status on')
+    sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
+    set showcmd
+    let &l:cul = s:cul_save
+    set scrolloff=3
+
+    let &l:concealcursor = s:goyo_cocu_save
+    let &l:conceallevel = s:goyo_cole_save
+    unlet! s:goyo_cocu_save s:goyo_cole_save
+
+    if !has('gui_running') && !has('nvim')
+        let &t_EI = "\e[2 q"
+        exe "norm! r\e"
+    endif
+
+    Limelight!
+endfu
+
+fu! s:const(val, min, max) abort "{{{1
     return min([max([a:val, a:min]), a:max])
 endfu
 
-fu! s:get_color(group, attr) abort
+fu! s:get_color(group, attr) abort "{{{1
     return synIDattr(synIDtrans(hlID(a:group)), a:attr)
 endfu
 
-fu! s:set_color(group, attr, color) abort
+fu! s:set_color(group, attr, color) abort "{{{1
     let gui = has('gui_running') || has('termguicolors') && &termguicolors
     exe printf('hi %s %s%s=%s', a:group, gui ? 'gui' : 'cterm', a:attr, a:color)
 endfu
 
-fu! s:blank(repel) abort
+fu! s:blank(repel) abort "{{{1
     if bufwinnr(t:goyo_pads.r) <= bufwinnr(t:goyo_pads.l) + 1
                 \ || bufwinnr(t:goyo_pads.b) <= bufwinnr(t:goyo_pads.t) + 3
         call s:goyo_off()
@@ -19,7 +133,7 @@ fu! s:blank(repel) abort
     exe 'wincmd' a:repel
 endfu
 
-fu! s:init_pad(command) abort
+fu! s:init_pad(command) abort "{{{1
     exe a:command
     setl buftype=nofile bufhidden=wipe nomodifiable nobuflisted noswapfile
                 \ nonu nocursorline nocursorcolumn winfixwidth winfixheight statusline=\ 
@@ -30,7 +144,7 @@ fu! s:init_pad(command) abort
     return bufnr
 endfu
 
-fu! s:setup_pad(bufnr, vert, size, repel) abort
+fu! s:setup_pad(bufnr, vert, size, repel) abort "{{{1
     let win = bufwinnr(a:bufnr)
     exe win . 'wincmd w'
     exe (a:vert ? 'vertical ' : '').'resize '.max([0, a:size])
@@ -50,7 +164,7 @@ fu! s:setup_pad(bufnr, vert, size, repel) abort
     exe winnr('#') . 'wincmd w'
 endfu
 
-fu! s:resize_pads() abort
+fu! s:resize_pads() abort "{{{1
     augroup goyop
         au!
     augroup END
@@ -73,7 +187,7 @@ fu! s:resize_pads() abort
     call s:setup_pad(t:goyo_pads.r, 1, hmargin - xoff, 'h')
 endfu
 
-fu! s:tranquilize() abort
+fu! s:tranquilize() abort "{{{1
     let bg = s:get_color('Normal', 'bg#')
     for grp in ['NonText', 'FoldColumn', 'ColorColumn', 'VertSplit',
                 \ 'StatusLine', 'StatusLineNC', 'SignColumn']
@@ -89,11 +203,11 @@ fu! s:tranquilize() abort
     endfor
 endfu
 
-fu! s:hide_statusline() abort
+fu! s:hide_statusline() abort "{{{1
     setl statusline=\ 
 endfu
 
-fu! s:hide_linenr() abort
+fu! s:hide_linenr() abort "{{{1
     if !get(g:, 'goyo_linenr', 0)
         setl nonu
         setl nornu
@@ -101,7 +215,7 @@ fu! s:hide_linenr() abort
     setl colorcolumn=
 endfu
 
-fu! s:maps_nop() abort
+fu! s:maps_nop() abort "{{{1
     let mapped = filter(['R', 'H', 'J', 'K', 'L', '|', '_'],
                 \ "empty(maparg(\"\<c-w>\".v:val, 'n'))")
     for c in mapped
@@ -110,7 +224,7 @@ fu! s:maps_nop() abort
     return mapped
 endfu
 
-fu! s:maps_resize() abort
+fu! s:maps_resize() abort "{{{1
     let commands = {
                 \ '=': ':<c-u>let t:goyo_dim = <sid>parse_arg(t:goyo_dim_expr) <bar> call <sid>resize_pads()<cr>',
                 \ '>': ':<c-u>let t:goyo_dim.width = winwidth(0) + 2 * v:count1 <bar> call <sid>resize_pads()<cr>',
@@ -127,11 +241,12 @@ endfu
 
 nno <silent> <plug>(goyo-resize) :<c-u>call <sid>resize_pads()<cr>
 
-fu! s:goyo_on(dim) abort
+fu! s:goyo_on(dim) abort "{{{1
+    " FIXME: If I press `SPC gg` in gui, tmux status line gets hidden. It should stay visible.
+    " FIXME: If I press `SPC  gg` in an unzoomed tmux pane,  then press it again
+    " to leave goyo mode, the pane is zoomed. The zoomed state should be preserved.
     let dim = s:parse_arg(a:dim)
-    if empty(dim)
-        return
-    endif
+    if empty(dim) | return | endif
 
     let s:orig_tab = tabpagenr()
     let settings =
@@ -147,7 +262,6 @@ fu! s:goyo_on(dim) abort
                 \   'sidescrolloff': &sidescrolloff
                 \ }
 
-    " New tab
     tab split
 
     let t:goyo_master = winbufnr(0)
@@ -203,7 +317,7 @@ fu! s:goyo_on(dim) abort
 
     augroup goyo
         au!
-        au TabLeave    *        call s:goyo_off()
+        au TabLeave    *        ++nested call s:goyo_off()
         au VimResized  *        call s:resize_pads()
         au ColorScheme *        call s:tranquilize()
         au BufWinEnter *        call s:hide_linenr() | call s:hide_statusline()
@@ -222,15 +336,11 @@ fu! s:goyo_on(dim) abort
     endif
 endfu
 
-fu! s:goyo_off() abort
-    if !exists('#goyo')
-        return
-    endif
+fu! s:goyo_off() abort "{{{1
+    if !exists('#goyo') | return | endif
 
     " Oops, not this tab
-    if !exists('t:goyo_revert')
-        return
-    endif
+    if !exists('t:goyo_revert') | return | endif
 
     " Clear auto commands
     exe 'au! goyo' | aug! goyo
@@ -271,6 +381,11 @@ fu! s:goyo_off() abort
     for [k, v] in items(goyo_revert)
         exe printf('let &%s = %s', k, string(v))
     endfor
+    " TODO: Why does junegunn re-set the colorscheme?
+    "
+    " For us, it's helpful,  because we clear some HGs while  in goyo mode, like
+    " `PreProc` used to highlight the title of  a comment; and we want them back
+    " when when we leave goyo mode.
     exe 'colo '. get(g:, 'colors_name', 'default')
 
     if goyo_disabled_gitgutter
@@ -291,14 +406,14 @@ if exists('#User#GoyoLeave')
 endif
 endfu
 
-fu! s:relsz(expr, limit) abort
+fu! s:relsz(expr, limit) abort "{{{1
     if a:expr !~ '%$'
         return str2nr(a:expr)
     endif
     return a:limit * str2nr(a:expr[:-2]) / 100
 endfu
 
-fu! s:parse_arg(arg) abort
+fu! s:parse_arg(arg) abort "{{{1
     if exists('g:goyo_height') || !exists('g:goyo_margin_top') && !exists('g:goyo_margin_bottom')
         let height = s:relsz(get(g:, 'goyo_height', '85%'), &lines)
         let yoff = 0
@@ -330,7 +445,7 @@ fu! s:parse_arg(arg) abort
     return dim
 endfu
 
-fu! goyo#execute(bang, dim) abort
+fu! goyo#execute(bang, dim) abort "{{{1
     if a:bang
         if exists('#goyo')
             call s:goyo_off()
