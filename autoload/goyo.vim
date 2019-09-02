@@ -65,6 +65,7 @@ fu! goyo#enter() abort "{{{1
     sil! exe 'norm! '.(exists('b:my_change_position') ? '99g;' : '99g,')
         \ .(b:my_change_position - 1) .'g,'
     call setpos('.', pos)
+    " 18729
 
     if ! get(s:, 'goyo_with_highlighting', 0)
         let highlight_groups = [
