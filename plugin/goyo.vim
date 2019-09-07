@@ -25,8 +25,8 @@ nno <silent><unique> <space>gG :<c-u>call goyo#start('with_highlighting')<cr>
 " Commands {{{1
 
 " TODO: Implement a version of the command in which no text is "dimmed".
-" All the text is in black; but the  status lines are still, and all the rest of
-" the visual clutter is removed.
+" All the text is in black; but the  status lines and all the rest of the visual
+" clutter is still removed.
 com! -nargs=? -bar -bang Goyo call goyo#execute(<bang>0, <q-args>)
 
 " Autocmds {{{1

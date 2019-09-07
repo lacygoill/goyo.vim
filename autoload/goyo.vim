@@ -26,18 +26,16 @@ fu! goyo#island() abort "{{{1
 endfu
 
 fu! goyo#start(how) abort "{{{1
-    let s:goyo_with_highlighting = a:how is# 'with_highlighting' ? 1 : 0
+    let s:goyo_with_highlighting = a:how is# 'with_highlighting'
     exe 'Goyo'.(!exists('#goyo') ? ' 110' : '!')
 endfu
 
 fu! goyo#enter() abort "{{{1
     sil call system('tmux set status off')
-    " FIXME:
-    " If we have 2  tmux panes in the same window, Vim is  one of them, and it's
-    " not zoomed, when we start goyo mode, we see much less text as usual.
+    " FIXME: If we have 2 tmux panes in the same window, Vim is one of them, and
+    " it's not zoomed, when we start goyo mode, we see much less text as usual.
     " If we have 2 vertical panes, the lines are shorter.
     " If we have 2 horizontal panes, there are fewer lines.
-    " We probably need to resize the Tmux pane from the plugin, earlier.
     sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
     let s:cul_save = &l:cul
     setl nocursorline
@@ -65,9 +63,57 @@ fu! goyo#enter() abort "{{{1
     sil! exe 'norm! '.(exists('b:my_change_position') ? '99g;' : '99g,')
         \ .(b:my_change_position - 1) .'g,'
     call setpos('.', pos)
-    " 18729
+
+    augroup goyo_cursor_not_on_leading_whitespace
+        au! * <buffer>
+        au CursorHold <buffer> if match(getline('.'), '^\s*\%'..col('.')..'c\s') >= 0 | exe 'norm! _' | endif
+    augroup END
+    " The autocmd doesn't work initially, probably because `CursorHold` has already been fired.{{{
+    "
+    " We could run `do CursorHold` now, but I prefer `norm! _`:
+    " less side-effects, and position the cursor  in a known location right from
+    " the start (helpful with an underline cusor which is harder to spot).
+    "}}}
+    norm! _
 
     if ! get(s:, 'goyo_with_highlighting', 0)
+        " TODO: We need to ignore other highlight groups.{{{
+        "
+        " When we're in goyo mode, usually, we're only interested in the code.
+        " Anything else should be ignored.
+        " Many HGs are missing from the following list.
+        "
+        " I guess most (all?) the HGs we still want to ignore are defined in:
+        "
+        "     ~/.vim/plugged/vim-lg-lib/autoload/lg/styled_comment.vim
+        "
+        " Issue: If we  remove a highlight group  in `styled_comment.vim`, we'll
+        " need to remove it here, and vice versa; duplication issue.
+        "}}}
+        " TODO: It seems that we don't need to reset the HGs once we leave goyo mode.{{{
+        "
+        " How does it work? Does goyo reload the colorscheme?
+        " Make sure the highlighting is properly restored when we leave goyo mode.
+        "}}}
+        let highlight_groups = [
+            \ 'Comment',
+            \ 'CommentItalic',
+            \ 'CommentUnderlined',
+            \ 'CommentPreProc',
+            \ 'Folded',
+            \ 'Todo',
+            \ 'commentCodeSpan',
+            \ 'markdownBlockquote',
+            \ 'markdownListItem',
+            \ 'markdownListItemCodeSpan',
+            \ 'markdownOption',
+            \ 'markdownPointer',
+            \ 'markdownRule',
+            \ ]
+        for group in highlight_groups
+            exe 'hi! link '.group.' Ignore'
+        endfor
+
         let highlight_groups = [
             \ 'Conditional',
             \ 'Delimiter',
@@ -77,16 +123,12 @@ fu! goyo#enter() abort "{{{1
             \ 'Number',
             \ 'Operator',
             \ 'PreProc',
-            \ 'PreProc',
             \ 'Special',
             \ 'Statement',
             \ 'String',
-            \ 'Todo',
             \ 'Type',
-            \ 'markdownListItem',
             \ 'snipSnippet',
             \ ]
-
         for group in highlight_groups
             exe 'hi '.group.' term=NONE cterm=NONE ctermfg=NONE ctermbg=NONE gui=NONE guifg=NONE guibg=NONE'
         endfor
@@ -109,6 +151,9 @@ fu! goyo#leave() abort "{{{1
         let &t_EI = "\e[2 q"
         exe "norm! r\e"
     endif
+
+    au! goyo_cursor_not_on_leading_whitespace * <buffer>
+    aug! goyo_cursor_not_on_leading_whitespace
 
     Limelight!
 endfu
