@@ -27,6 +27,13 @@ nno <silent><unique> <space>gG :<c-u>call goyo#start('with_highlighting')<cr>
 " TODO: Implement a version of the command in which no text is "dimmed".
 " All the text is in black; but the  status lines and all the rest of the visual
 " clutter is still removed.
+" Or, implement a mapping which would cycle between different submodes of the goyo mode:
+"
+"    - no syntax highlighting, no dimming
+"    - no syntax highlighting, dimming
+"    - syntax highlighting, no dimming
+"    - syntax highlighting, dimming
+"    ...
 com! -nargs=? -bar -bang Goyo call goyo#execute(<bang>0, <q-args>)
 
 " Autocmds {{{1
