@@ -31,6 +31,9 @@ fu! goyo#start(how) abort "{{{1
 endfu
 
 fu! goyo#enter() abort "{{{1
+    " Is inspected by other plugins to adapt their behavior.
+    " E.g.: vim-toggle-settings (mappings toggling 'cul').
+    let g:in_goyo_mode = 1
     sil call system('tmux set status off')
     " FIXME: If we have 2 tmux panes in the same window, Vim is one of them, and
     " it's not zoomed, when we start goyo mode, we see much less text as usual.
@@ -38,20 +41,13 @@ fu! goyo#enter() abort "{{{1
     " If we have 2 horizontal panes, there are fewer lines.
     sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
     let s:cul_save = &l:cul
-    setl nocursorline
+    setl cul
     set scrolloff=999
     set noshowcmd
 
     let s:goyo_cocu_save = &l:concealcursor
     let s:goyo_cole_save = &l:conceallevel
     setl concealcursor=nc conceallevel=3
-
-    " FIXME: Find another way to change the shape of the cursor in Neovim.
-    " What about the gui?
-    if !has('gui_running') && !has('nvim')
-        let &t_EI = "\e[4 q"
-        exe "norm! r\e"
-    endif
 
     let pos = getcurpos()
     " The new window created by `:tab sp` inherits the window-local options of
@@ -137,20 +133,17 @@ fu! goyo#enter() abort "{{{1
 endfu
 
 fu! goyo#leave() abort "{{{1
+    unlet! g:in_goyo_mode
+
     sil call system('tmux set status on')
     sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
+
     set showcmd
     let &l:cul = s:cul_save
     set scrolloff=3
-
     let &l:concealcursor = s:goyo_cocu_save
     let &l:conceallevel = s:goyo_cole_save
     unlet! s:goyo_cocu_save s:goyo_cole_save
-
-    if !has('gui_running') && !has('nvim')
-        let &t_EI = "\e[2 q"
-        exe "norm! r\e"
-    endif
 
     au! goyo_cursor_not_on_leading_whitespace * <buffer>
     aug! goyo_cursor_not_on_leading_whitespace
@@ -182,7 +175,8 @@ endfu
 fu! s:init_pad(command) abort "{{{1
     exe a:command
     setl buftype=nofile bufhidden=wipe nomodifiable nobuflisted noswapfile
-                \ nonu nocursorline nocursorcolumn winfixwidth winfixheight statusline=\ 
+                \ nonu nocul nocursorcolumn winfixwidth winfixheight
+    let &l:stl = ' '
     setl nornu
     setl colorcolumn=
     let bufnr = winbufnr(0)
@@ -250,7 +244,7 @@ fu! s:tranquilize() abort "{{{1
 endfu
 
 fu! s:hide_statusline() abort "{{{1
-    setl statusline=\ 
+    let &l:stl = ' '
 endfu
 
 fu! s:hide_linenr() abort "{{{1
@@ -341,9 +335,7 @@ fu! s:goyo_on(dim) abort "{{{1
     set laststatus=0
     set showtabline=0
     set noruler
-    set fillchars+=vert:\ 
-    set fillchars+=stl:\ 
-    set fillchars+=stlnc:\ 
+    let &fcs .= 'vert: ,stl: ,stlnc: '
     set sidescroll=1
     set sidescrolloff=0
 
