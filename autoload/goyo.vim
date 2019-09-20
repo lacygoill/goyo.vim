@@ -42,7 +42,6 @@ fu! goyo#enter() abort "{{{1
     sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
     let s:cul_save = &l:cul
     setl cul
-    set scrolloff=999
     set noshowcmd
 
     let s:goyo_cocu_save = &l:concealcursor
@@ -60,9 +59,12 @@ fu! goyo#enter() abort "{{{1
         \ .(b:my_change_position - 1) .'g,'
     call setpos('.', pos)
 
-    augroup goyo_cursor_not_on_leading_whitespace
+    augroup my_goyo
         au! * <buffer>
+        " make sure cursor is not on leading whitespace
         au CursorHold <buffer> if match(getline('.'), '^\s*\%'..col('.')..'c\s') >= 0 | exe 'norm! _' | endif
+        " clear possible error message from command-line
+        au CursorHold <buffer> redraw!
     augroup END
     " The autocmd doesn't work initially, probably because `CursorHold` has already been fired.{{{
     "
@@ -71,6 +73,17 @@ fu! goyo#enter() abort "{{{1
     " the start (helpful with an underline cusor which is harder to spot).
     "}}}
     norm! _
+
+    let s:auto_open_fold_was_enabled = 1
+    if ! exists('b:auto_open_fold_mappings')
+        let s:auto_open_fold_was_enabled = 0
+        call toggle_settings#auto_open_fold('enable')
+    endif
+
+    " We want to be able to read code blocks in our notes (and probably other syntax groups).
+    if &ft is# 'markdown' | return | endif
+
+    Limelight
 
     if ! get(s:, 'goyo_with_highlighting', 0)
         " TODO: We need to ignore other highlight groups.{{{
@@ -129,7 +142,6 @@ fu! goyo#enter() abort "{{{1
             exe 'hi '.group.' term=NONE cterm=NONE ctermfg=NONE ctermbg=NONE gui=NONE guifg=NONE guibg=NONE'
         endfor
     endif
-    Limelight
 endfu
 
 fu! goyo#leave() abort "{{{1
@@ -140,15 +152,19 @@ fu! goyo#leave() abort "{{{1
 
     set showcmd
     let &l:cul = s:cul_save
-    set scrolloff=3
     let &l:concealcursor = s:goyo_cocu_save
     let &l:conceallevel = s:goyo_cole_save
     unlet! s:goyo_cocu_save s:goyo_cole_save
 
-    au! goyo_cursor_not_on_leading_whitespace * <buffer>
-    aug! goyo_cursor_not_on_leading_whitespace
+    au! my_goyo * <buffer>
+    sil! aug! my_goyo
+    "  │
+    "  └ W19
 
     Limelight!
+    if ! s:auto_open_fold_was_enabled && exists('b:auto_open_fold_mappings')
+        call toggle_settings#auto_open_fold('disable')
+    endif
 endfu
 
 fu! s:const(val, min, max) abort "{{{1
@@ -282,9 +298,6 @@ endfu
 nno <silent> <plug>(goyo-resize) :<c-u>call <sid>resize_pads()<cr>
 
 fu! s:goyo_on(dim) abort "{{{1
-    " FIXME: If I press `SPC gg` in gui, tmux status line gets hidden. It should stay visible.
-    " FIXME: If I press `SPC  gg` in an unzoomed tmux pane,  then press it again
-    " to leave goyo mode, the pane is zoomed. The zoomed state should be preserved.
     let dim = s:parse_arg(a:dim)
     if empty(dim) | return | endif
 
