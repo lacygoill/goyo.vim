@@ -40,8 +40,6 @@ fu! goyo#enter() abort "{{{1
     " If we have 2 vertical panes, the lines are shorter.
     " If we have 2 horizontal panes, there are fewer lines.
     sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
-    let s:cul_save = &l:cul
-    setl cul
     set noshowcmd
 
     let s:goyo_cocu_save = &l:concealcursor
@@ -151,7 +149,6 @@ fu! goyo#leave() abort "{{{1
     sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
 
     set showcmd
-    let &l:cul = s:cul_save
     let &l:concealcursor = s:goyo_cocu_save
     let &l:conceallevel = s:goyo_cole_save
     unlet! s:goyo_cocu_save s:goyo_cole_save
