@@ -26,7 +26,7 @@ fu! goyo#island() abort "{{{1
 endfu
 
 fu! goyo#start(how) abort "{{{1
-    let s:goyo_with_highlighting = a:how is# 'with_highlighting'
+    let s:with_highlighting = a:how is# 'with_highlighting'
     exe 'Goyo'.(!exists('#goyo') ? ' 110' : '!')
 endfu
 
@@ -42,9 +42,9 @@ fu! goyo#enter() abort "{{{1
     sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
     set noshowcmd
 
-    let s:goyo_cocu_save = &l:concealcursor
-    let s:goyo_cole_save = &l:conceallevel
-    setl concealcursor=nc conceallevel=3
+    let [s:winid_save, s:bufnr_save] = [win_getid(), bufnr('%')]
+    let [s:cocu_save, s:cole_save] = [&l:cocu, &l:cole]
+    setl cocu=nc cole=3
 
     let pos = getcurpos()
     " The new window created by `:tab sp` inherits the window-local options of
@@ -83,7 +83,7 @@ fu! goyo#enter() abort "{{{1
 
     Limelight
 
-    if ! get(s:, 'goyo_with_highlighting', 0)
+    if ! get(s:, 'with_highlighting', 0)
         " TODO: We need to ignore other highlight groups.{{{
         "
         " When we're in goyo mode, usually, we're only interested in the code.
@@ -123,9 +123,11 @@ fu! goyo#enter() abort "{{{1
 
         let highlight_groups = [
             \ 'Conditional',
+            \ 'Constant',
             \ 'Delimiter',
             \ 'Function',
             \ 'Identifier',
+            \ 'Keyword',
             \ 'MatchParen',
             \ 'Number',
             \ 'Operator',
@@ -149,9 +151,12 @@ fu! goyo#leave() abort "{{{1
     sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
 
     set showcmd
-    let &l:concealcursor = s:goyo_cocu_save
-    let &l:conceallevel = s:goyo_cole_save
-    unlet! s:goyo_cocu_save s:goyo_cole_save
+    if winbufnr(s:winid_save) == s:bufnr_save
+        let [tabnr, winnr] = win_id2tabwin(s:winid_save)
+        call settabwinvar(tabnr, winnr, '&cocu', s:cocu_save)
+        call settabwinvar(tabnr, winnr, '&cole', s:cole_save)
+    endif
+    unlet! s:cocu_save s:cole_save s:winid_save s:bufnr_save
 
     au! my_goyo * <buffer>
     sil! aug! my_goyo
