@@ -250,7 +250,7 @@ fu! s:tranquilize() abort "{{{1
     for grp in ['NonText', 'FoldColumn', 'ColorColumn', 'VertSplit',
                 \ 'StatusLine', 'StatusLineNC', 'SignColumn']
         " -1 on Vim / '' on GVim
-        if bg ==# -1 || empty(bg)
+        if bg == -1 || empty(bg)
             call s:set_color(grp, 'fg', get(g:, 'goyo_bg', 'black'))
             call s:set_color(grp, 'bg', 'NONE')
         else
@@ -350,7 +350,7 @@ fu! s:goyo_on(dim) abort "{{{1
     set laststatus=0
     set showtabline=0
     set noruler
-    let &fcs .= 'vert: ,stl: ,stlnc: '
+    let &fcs ..= 'vert: ,stl: ,stlnc: '
     set sidescroll=1
     set sidescrolloff=0
 
