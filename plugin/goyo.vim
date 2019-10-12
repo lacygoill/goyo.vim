@@ -34,7 +34,7 @@ nno <silent><unique> <space>gG :<c-u>call goyo#start('with_highlighting')<cr>
 "    - syntax highlighting, no dimming
 "    - syntax highlighting, dimming
 "    ...
-com! -nargs=? -bar -bang Goyo call goyo#execute(<bang>0, <q-args>)
+com -nargs=? -bar -bang Goyo call goyo#execute(<bang>0, <q-args>)
 
 " Autocmds {{{1
 

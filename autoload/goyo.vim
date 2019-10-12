@@ -1,4 +1,4 @@
-fu! goyo#island() abort "{{{1
+fu goyo#island() abort "{{{1
     let should_collapse =
         \    line("'<") > 2 && getline(line("'<")-1) =~# '^\s*$' && getline(line("'<")-2) =~# '^\s*$'
         \ && line("'>") < line('$') - 1 && getline(line("'>")+1) =~# '^\s*$' && getline(line("'>")+2) =~# '^\s*$'
@@ -25,12 +25,12 @@ fu! goyo#island() abort "{{{1
     norm! '<zz
 endfu
 
-fu! goyo#start(how) abort "{{{1
+fu goyo#start(how) abort "{{{1
     let s:with_highlighting = a:how is# 'with_highlighting'
     exe 'Goyo'.(!exists('#goyo') ? ' 110' : '!')
 endfu
 
-fu! goyo#enter() abort "{{{1
+fu goyo#enter() abort "{{{1
     " Is inspected by other plugins to adapt their behavior.
     " E.g.: vim-toggle-settings (mappings toggling 'cul').
     let g:in_goyo_mode = 1
@@ -102,49 +102,49 @@ fu! goyo#enter() abort "{{{1
         " How does it work? Does goyo reload the colorscheme?
         " Make sure the highlighting is properly restored when we leave goyo mode.
         "}}}
-        let highlight_groups = [
-            \ 'Comment',
-            \ 'CommentItalic',
-            \ 'CommentUnderlined',
-            \ 'CommentPreProc',
-            \ 'Folded',
-            \ 'Todo',
-            \ 'commentCodeSpan',
-            \ 'markdownBlockquote',
-            \ 'markdownListItem',
-            \ 'markdownListItemCodeSpan',
-            \ 'markdownOption',
-            \ 'markdownPointer',
-            \ 'markdownRule',
-            \ ]
+        let highlight_groups =<< trim END
+            Comment
+            CommentItalic
+            CommentUnderlined
+            CommentPreProc
+            Folded
+            Todo
+            commentCodeSpan
+            markdownBlockquote
+            markdownListItem
+            markdownListItemCodeSpan
+            markdownOption
+            markdownPointer
+            markdownRule
+        END
         for group in highlight_groups
             exe 'hi! link '.group.' Ignore'
         endfor
 
-        let highlight_groups = [
-            \ 'Conditional',
-            \ 'Constant',
-            \ 'Delimiter',
-            \ 'Function',
-            \ 'Identifier',
-            \ 'Keyword',
-            \ 'MatchParen',
-            \ 'Number',
-            \ 'Operator',
-            \ 'PreProc',
-            \ 'Special',
-            \ 'Statement',
-            \ 'String',
-            \ 'Type',
-            \ 'snipSnippet',
-            \ ]
+        let highlight_groups =<< trim END
+            Conditional
+            Constant
+            Delimiter
+            Function
+            Identifier
+            Keyword
+            MatchParen
+            Number
+            Operator
+            PreProc
+            Special
+            Statement
+            String
+            Type
+            snipSnippet
+        END
         for group in highlight_groups
             exe 'hi '.group.' term=NONE cterm=NONE ctermfg=NONE ctermbg=NONE gui=NONE guifg=NONE guibg=NONE'
         endfor
     endif
 endfu
 
-fu! goyo#leave() abort "{{{1
+fu goyo#leave() abort "{{{1
     unlet! g:in_goyo_mode
 
     sil call system('tmux set status on')
@@ -169,20 +169,20 @@ fu! goyo#leave() abort "{{{1
     endif
 endfu
 
-fu! s:const(val, min, max) abort "{{{1
+fu s:const(val, min, max) abort "{{{1
     return min([max([a:val, a:min]), a:max])
 endfu
 
-fu! s:get_color(group, attr) abort "{{{1
+fu s:get_color(group, attr) abort "{{{1
     return synIDattr(synIDtrans(hlID(a:group)), a:attr)
 endfu
 
-fu! s:set_color(group, attr, color) abort "{{{1
+fu s:set_color(group, attr, color) abort "{{{1
     let gui = has('gui_running') || has('termguicolors') && &termguicolors
     exe printf('hi %s %s%s=%s', a:group, gui ? 'gui' : 'cterm', a:attr, a:color)
 endfu
 
-fu! s:blank(repel) abort "{{{1
+fu s:blank(repel) abort "{{{1
     if bufwinnr(t:goyo_pads.r) <= bufwinnr(t:goyo_pads.l) + 1
                 \ || bufwinnr(t:goyo_pads.b) <= bufwinnr(t:goyo_pads.t) + 3
         call s:goyo_off()
@@ -190,7 +190,7 @@ fu! s:blank(repel) abort "{{{1
     exe 'wincmd' a:repel
 endfu
 
-fu! s:init_pad(command) abort "{{{1
+fu s:init_pad(command) abort "{{{1
     exe a:command
     setl buftype=nofile bufhidden=wipe nomodifiable nobuflisted noswapfile
                 \ nonu nocul nocursorcolumn winfixwidth winfixheight
@@ -202,7 +202,7 @@ fu! s:init_pad(command) abort "{{{1
     return bufnr
 endfu
 
-fu! s:setup_pad(bufnr, vert, size, repel) abort "{{{1
+fu s:setup_pad(bufnr, vert, size, repel) abort "{{{1
     let win = bufwinnr(a:bufnr)
     exe win . 'wincmd w'
     exe (a:vert ? 'vertical ' : '').'resize '.max([0, a:size])
@@ -222,7 +222,7 @@ fu! s:setup_pad(bufnr, vert, size, repel) abort "{{{1
     exe winnr('#') . 'wincmd w'
 endfu
 
-fu! s:resize_pads() abort "{{{1
+fu s:resize_pads() abort "{{{1
     augroup goyop
         au!
     augroup END
@@ -245,7 +245,7 @@ fu! s:resize_pads() abort "{{{1
     call s:setup_pad(t:goyo_pads.r, 1, hmargin - xoff, 'h')
 endfu
 
-fu! s:tranquilize() abort "{{{1
+fu s:tranquilize() abort "{{{1
     let bg = s:get_color('Normal', 'bg#')
     for grp in ['NonText', 'FoldColumn', 'ColorColumn', 'VertSplit',
                 \ 'StatusLine', 'StatusLineNC', 'SignColumn']
@@ -261,11 +261,11 @@ fu! s:tranquilize() abort "{{{1
     endfor
 endfu
 
-fu! s:hide_statusline() abort "{{{1
+fu s:hide_statusline() abort "{{{1
     let &l:stl = ' '
 endfu
 
-fu! s:hide_linenr() abort "{{{1
+fu s:hide_linenr() abort "{{{1
     if !get(g:, 'goyo_linenr', 0)
         setl nonu
         setl nornu
@@ -273,7 +273,7 @@ fu! s:hide_linenr() abort "{{{1
     setl colorcolumn=
 endfu
 
-fu! s:maps_nop() abort "{{{1
+fu s:maps_nop() abort "{{{1
     let mapped = filter(['R', 'H', 'J', 'K', 'L', '|', '_'],
                 \ "empty(maparg(\"\<c-w>\".v:val, 'n'))")
     for c in mapped
@@ -282,7 +282,7 @@ fu! s:maps_nop() abort "{{{1
     return mapped
 endfu
 
-fu! s:maps_resize() abort "{{{1
+fu s:maps_resize() abort "{{{1
     let commands = {
                 \ '=': ':<c-u>let t:goyo_dim = <sid>parse_arg(t:goyo_dim_expr) <bar> call <sid>resize_pads()<cr>',
                 \ '>': ':<c-u>let t:goyo_dim.width = winwidth(0) + 2 * v:count1 <bar> call <sid>resize_pads()<cr>',
@@ -299,7 +299,7 @@ endfu
 
 nno <silent> <plug>(goyo-resize) :<c-u>call <sid>resize_pads()<cr>
 
-fu! s:goyo_on(dim) abort "{{{1
+fu s:goyo_on(dim) abort "{{{1
     let dim = s:parse_arg(a:dim)
     if empty(dim) | return | endif
 
@@ -389,7 +389,7 @@ fu! s:goyo_on(dim) abort "{{{1
     endif
 endfu
 
-fu! s:goyo_off() abort "{{{1
+fu s:goyo_off() abort "{{{1
     if !exists('#goyo') | return | endif
 
     " Oops, not this tab
@@ -459,14 +459,14 @@ if exists('#User#GoyoLeave')
 endif
 endfu
 
-fu! s:relsz(expr, limit) abort "{{{1
+fu s:relsz(expr, limit) abort "{{{1
     if a:expr !~ '%$'
         return str2nr(a:expr)
     endif
     return a:limit * str2nr(a:expr[:-2]) / 100
 endfu
 
-fu! s:parse_arg(arg) abort "{{{1
+fu s:parse_arg(arg) abort "{{{1
     if exists('g:goyo_height') || !exists('g:goyo_margin_top') && !exists('g:goyo_margin_bottom')
         let height = s:relsz(get(g:, 'goyo_height', '85%'), &lines)
         let yoff = 0
@@ -498,7 +498,7 @@ fu! s:parse_arg(arg) abort "{{{1
     return dim
 endfu
 
-fu! goyo#execute(bang, dim) abort "{{{1
+fu goyo#execute(bang, dim) abort "{{{1
     if a:bang
         if exists('#goyo')
             call s:goyo_off()
