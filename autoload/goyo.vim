@@ -103,40 +103,40 @@ fu goyo#enter() abort "{{{1
         " Make sure the highlighting is properly restored when we leave goyo mode.
         "}}}
         let highlight_groups =<< trim END
-            Comment
-            CommentItalic
-            CommentUnderlined
-            CommentPreProc
-            Folded
-            Todo
-            commentCodeSpan
-            markdownBlockquote
-            markdownListItem
-            markdownListItemCodeSpan
-            markdownOption
-            markdownPointer
-            markdownRule
+        Comment
+        CommentItalic
+        CommentUnderlined
+        CommentPreProc
+        Folded
+        Todo
+        commentCodeSpan
+        markdownBlockquote
+        markdownListItem
+        markdownListItemCodeSpan
+        markdownOption
+        markdownPointer
+        markdownRule
         END
         for group in highlight_groups
             exe 'hi! link '.group.' Ignore'
         endfor
 
         let highlight_groups =<< trim END
-            Conditional
-            Constant
-            Delimiter
-            Function
-            Identifier
-            Keyword
-            MatchParen
-            Number
-            Operator
-            PreProc
-            Special
-            Statement
-            String
-            Type
-            snipSnippet
+        Conditional
+        Constant
+        Delimiter
+        Function
+        Identifier
+        Keyword
+        MatchParen
+        Number
+        Operator
+        PreProc
+        Special
+        Statement
+        String
+        Type
+        snipSnippet
         END
         for group in highlight_groups
             exe 'hi '.group.' term=NONE cterm=NONE ctermfg=NONE ctermbg=NONE gui=NONE guifg=NONE guibg=NONE'
