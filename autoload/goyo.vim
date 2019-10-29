@@ -103,7 +103,6 @@ fu goyo#enter() abort "{{{1
         " Make sure the highlighting is properly restored when we leave goyo mode.
         "}}}
         let highlight_groups =<< trim END
-            Comment
             CommentItalic
             CommentUnderlined
             CommentPreProc
@@ -117,6 +116,7 @@ fu goyo#enter() abort "{{{1
             markdownPointer
             markdownRule
         END
+        if &ft isnot# 'help' | let highlight_groups += ['Comment'] | endif
         for group in highlight_groups
             exe 'hi! link '.group.' Ignore'
         endfor
@@ -198,7 +198,7 @@ fu s:init_pad(command) abort "{{{1
     setl nornu
     setl colorcolumn=
     let bufnr = winbufnr(0)
-    exe winnr('#').'wincmd w'
+    wincmd p
     return bufnr
 endfu
 
@@ -219,7 +219,7 @@ fu s:setup_pad(bufnr, vert, size, repel) abort "{{{1
         normal! gg
         setl nomodifiable
     endif
-    exe winnr('#') . 'wincmd w'
+    wincmd p
 endfu
 
 fu s:resize_pads() abort "{{{1
