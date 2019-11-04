@@ -499,6 +499,9 @@ fu s:parse_arg(arg) abort "{{{1
 endfu
 
 fu goyo#execute(bang, dim) abort "{{{1
+    " I'm frequently pressing `zz` when entering goyo mode.
+    " Might as well make `:Goyo` do it automatically for me.
+    norm! zz
     if a:bang
         if exists('#goyo')
             call s:goyo_off()
@@ -519,6 +522,6 @@ fu goyo#execute(bang, dim) abort "{{{1
             endif
         else
             call s:goyo_off()
-        end
-    end
+        endif
+    endif
 endfu
