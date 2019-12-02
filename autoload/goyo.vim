@@ -27,12 +27,12 @@ endfu
 
 fu goyo#start(how) abort "{{{1
     let s:with_highlighting = a:how is# 'with_highlighting'
-    exe 'Goyo'.(!exists('#goyo') ? ' 110' : '!')
+    exe 'Goyo'..(!exists('#goyo') ? ' 110' : '!')
 endfu
 
 fu goyo#enter() abort "{{{1
     " Is inspected by other plugins to adapt their behavior.
-    " E.g.: vim-toggle-settings (mappings toggling 'cul').
+    " E.g.: vim-toggle-settings (mappings toggling `'cul'`).
     let g:in_goyo_mode = 1
     sil call system('tmux set status off')
     " FIXME: If we have 2 tmux panes in the same window, Vim is one of them, and
@@ -53,8 +53,8 @@ fu goyo#enter() abort "{{{1
     "
     " FIXME: We should  use the function `s:restore_change_position()`  but it's
     " local to `vim-window`.
-    sil! exe 'norm! '.(exists('b:my_change_position') ? '99g;' : '99g,')
-        \ .(b:my_change_position - 1) .'g,'
+    sil! exe 'norm! '..(exists('b:my_change_position') ? '99g;' : '99g,')
+        \ ..(b:my_change_position - 1)..'g,'
     call setpos('.', pos)
 
     augroup my_goyo
@@ -118,7 +118,7 @@ fu goyo#enter() abort "{{{1
         END
         if &ft isnot# 'help' | let highlight_groups += ['Comment'] | endif
         for group in highlight_groups
-            exe 'hi! link '.group.' Ignore'
+            exe 'hi! link '..group..' Ignore'
         endfor
 
         let highlight_groups =<< trim END
@@ -139,7 +139,7 @@ fu goyo#enter() abort "{{{1
             snipSnippet
         END
         for group in highlight_groups
-            exe 'hi '.group.' term=NONE cterm=NONE ctermfg=NONE ctermbg=NONE gui=NONE guifg=NONE guibg=NONE'
+            exe 'hi '..group..' term=NONE cterm=NONE ctermfg=NONE ctermbg=NONE gui=NONE guifg=NONE guibg=NONE'
         endfor
     endif
 endfu
@@ -158,10 +158,24 @@ fu goyo#leave() abort "{{{1
     endif
     unlet! s:cocu_save s:cole_save s:winid_save s:bufnr_save
 
+    " TODO: Refactor all `:wincmd` into `:call win_execute()`.{{{
+    "
+    " In Vim,  if we've entered  goyo mode in the  bottom split of  2 horizontal
+    " splits, when we  leave goyo mode, the top window  is not squashed anymore;
+    " it's 1 line high; it's probably due to the usage of `:wincmd` somewhere in
+    " this plugin.
+    "
+    " For the moment, we fix the  issue by firing `WinEnter`, so that vim-window
+    " re-maximizes the current window, which will squash the top window.
+    "
+    " Once you've refactored all `:wincmd` into `win_execute()`, remove the next `:do`.
+    "}}}
+    do <nomodeline> WinEnter
+
     au! my_goyo * <buffer>
     sil! aug! my_goyo
     "  │
-    "  └ W19
+    "  └ `:h W19`
 
     Limelight!
     if ! s:auto_open_fold_was_enabled && exists('b:auto_open_fold_mappings')
@@ -455,7 +469,7 @@ if exists('g:goyo_callbacks[1]')
     call g:goyo_callbacks[1]()
 endif
 if exists('#User#GoyoLeave')
-    doautocmd User GoyoLeave
+    do <nomodeline> User GoyoLeave
 endif
 endfu
 
