@@ -50,11 +50,7 @@ fu goyo#enter() abort "{{{1
     " The new window created by `:tab sp` inherits the window-local options of
     " the original window. But `:tab sp` doesn't fire `BufWinEnter` so we lose
     " our position in the changelist.
-    "
-    " FIXME: We should  use the function `s:restore_change_position()`  but it's
-    " local to `vim-window`.
-    sil! exe 'norm! '..(exists('b:my_change_position') ? '99g;' : '99g,')
-        \ ..(b:my_change_position - 1)..'g,'
+    do <nomodeline> BufWinEnter
     call setpos('.', pos)
 
     augroup my_goyo
@@ -460,17 +456,15 @@ fu s:goyo_off() abort "{{{1
     endif
 
     if goyo_disabled_signify
-        sil! if !b:sy.active
-        SignifyToggle
+        sil! if !b:sy.active | SignifyToggle | endif
     endif
-endif
 
-if exists('g:goyo_callbacks[1]')
-    call g:goyo_callbacks[1]()
-endif
-if exists('#User#GoyoLeave')
-    do <nomodeline> User GoyoLeave
-endif
+    if exists('g:goyo_callbacks[1]')
+        call g:goyo_callbacks[1]()
+    endif
+    if exists('#User#GoyoLeave')
+        do <nomodeline> User GoyoLeave
+    endif
 endfu
 
 fu s:relsz(expr, limit) abort "{{{1
