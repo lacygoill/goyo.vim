@@ -456,7 +456,18 @@ fu s:goyo_off() abort "{{{1
     endif
 
     if goyo_disabled_signify
-        sil! if !b:sy.active | SignifyToggle | endif
+        " Why `:exe`?{{{
+        "
+        " `:SignifyToggle` does not need it; it's correctly defined with `-bar`.
+        " However, if the command does not exist, `E171: Missing :endif` will be raised.
+        " That's probably because Vim fails to parse an unknown command:
+        "
+        "     $ vim -Nu NONE -S <(echo 'if 0 | not_a_cmd | endif')
+        "     E171: Missing :endif~
+        "
+        " See: https://github.com/neovim/neovim/issues/11136#issuecomment-537253732
+        "}}}
+        sil! if !b:sy.active | exe 'SignifyToggle' | endif
     endif
 
     if exists('g:goyo_callbacks[1]')
