@@ -69,7 +69,7 @@ fu goyo#enter() abort "{{{1
     norm! _
 
     let s:auto_open_fold_was_enabled = 1
-    if ! exists('b:auto_open_fold_mappings')
+    if !exists('b:auto_open_fold_mappings')
         let s:auto_open_fold_was_enabled = 0
         call toggle_settings#auto_open_fold('enable')
     endif
@@ -79,7 +79,7 @@ fu goyo#enter() abort "{{{1
 
     Limelight
 
-    if ! get(s:, 'with_highlighting', 0)
+    if !get(s:, 'with_highlighting', 0)
         " TODO: We need to ignore other highlight groups.{{{
         "
         " When we're in goyo mode, usually, we're only interested in the code.
@@ -174,7 +174,7 @@ fu goyo#leave() abort "{{{1
     "  └ `:h W19`
 
     Limelight!
-    if ! s:auto_open_fold_was_enabled && exists('b:auto_open_fold_mappings')
+    if !s:auto_open_fold_was_enabled && exists('b:auto_open_fold_mappings')
         call toggle_settings#auto_open_fold('disable')
     endif
 endfu
