@@ -63,7 +63,7 @@ fu goyo#enter() abort "{{{1
     " The autocmd doesn't work initially, probably because `CursorHold` has already been fired.{{{
     "
     " We could run `do CursorHold` now, but I prefer `norm! _`:
-    " less side-effects, and position the cursor  in a known location right from
+    " less side effects, and position the cursor  in a known location right from
     " the start (helpful with an underline cusor which is harder to spot).
     "}}}
     norm! _
