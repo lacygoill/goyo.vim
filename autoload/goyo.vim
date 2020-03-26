@@ -314,18 +314,18 @@ fu s:goyo_on(dim) abort "{{{1
     if empty(dim) | return | endif
 
     let s:orig_tab = tabpagenr()
-    let settings =
-                \ { 'laststatus':    &laststatus,
-                \   'showtabline':   &showtabline,
-                \   'fillchars':     &fillchars,
-                \   'winminwidth':   &winminwidth,
-                \   'winwidth':      &winwidth,
-                \   'winminheight':  &winminheight,
-                \   'winheight':     &winheight,
-                \   'ruler':         &ruler,
-                \   'sidescroll':    &sidescroll,
-                \   'sidescrolloff': &sidescrolloff
-                \ }
+    let settings = {
+        \ 'laststatus':    &laststatus,
+        \   'showtabline':   &showtabline,
+        \   'fillchars':     &fillchars,
+        \   'winminwidth':   &winminwidth,
+        \   'winwidth':      &winwidth,
+        \   'winminheight':  &winminheight,
+        \   'winheight':     &winheight,
+        \   'ruler':         &ruler,
+        \   'sidescroll':    &sidescroll,
+        \   'sidescrolloff': &sidescrolloff,
+        \ }
 
     tab split
 
