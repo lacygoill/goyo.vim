@@ -247,7 +247,7 @@ fu s:resize_pads() abort "{{{1
     call s:setup_pad(t:goyo_pads.t, 0, top, 'j')
     call s:setup_pad(t:goyo_pads.b, 0, bot, 'k')
 
-    let nwidth  = max([len(string(line('$'))) + 1, &numberwidth])
+    let nwidth  = max([strlen(line('$')) + 1, &numberwidth])
     let width   = t:goyo_dim.width + (&number ? nwidth : 0)
     let hmargin = max([0, (&columns - width) / 2 - 1])
     let xoff    = s:const(t:goyo_dim.xoff, - hmargin, hmargin)
