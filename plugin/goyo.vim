@@ -38,8 +38,7 @@ com -nargs=? -bar -bang Goyo call goyo#execute(<bang>0, <q-args>)
 
 " Autocmds {{{1
 
-augroup my_goyo
-    au!
+augroup my_goyo | au!
     au User GoyoEnter call goyo#enter()
     au User GoyoLeave call goyo#leave()
 augroup END

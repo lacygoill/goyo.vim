@@ -378,8 +378,7 @@ fu s:goyo_on(dim) abort "{{{1
     call s:resize_pads()
     call s:tranquilize()
 
-    augroup goyo
-        au!
+    augroup goyo | au!
         au TabLeave    *        ++nested call s:goyo_off()
         au VimResized  *        call s:resize_pads()
         au ColorScheme *        call s:tranquilize()
