@@ -57,13 +57,13 @@ fu goyo#enter() abort "{{{1
         au! * <buffer>
         " make sure cursor is not on leading whitespace
         au CursorHold <buffer> if match(getline('.'), '^\s*\%'..col('.')..'c\s') >= 0 | exe 'norm! _' | endif
-        " clear possible error message from command-line
-        au CursorHold <buffer> redraw!
+        " clear possible error message from command-line (e.g. `E486`)
+        au CursorHold <buffer> echo
     augroup END
     " The autocmd doesn't work initially, probably because `CursorHold` has already been fired.{{{
     "
     " We could run `do CursorHold` now, but I prefer `norm! _`:
-    " less side effects, and position the cursor  in a known location right from
+    " fewer side effects, and position the cursor in a known location right from
     " the start (helpful with an underline cusor which is harder to spot).
     "}}}
     norm! _
