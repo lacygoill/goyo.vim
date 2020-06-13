@@ -384,9 +384,6 @@ fu s:goyo_on(dim) abort "{{{1
         au ColorScheme *        call s:tranquilize()
         au BufWinEnter *        call s:hide_linenr() | call s:hide_statusline()
         au WinEnter,WinLeave *  call s:hide_statusline()
-        if has('nvim')
-            au TermClose * call feedkeys("\<plug>(goyo-resize)")
-        endif
     augroup END
 
     call s:hide_statusline()
