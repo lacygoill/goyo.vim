@@ -12,13 +12,13 @@ xno <silent><unique> <space>gg :<c-u>call goyo#island()<cr>
 " If you have weird thick borders around the window (especially visible in a light colorscheme):{{{
 "
 " You need to temporarily disable `'tgc'`, before running `:Goyo`.
-" The  issue is specific  to urxvt. I can't  reproduce in other  terminals, like
+" The issue  is specific to urxvt.   I can't reproduce in  other terminals, like
 " xterm and st.
 "}}}
 
 " FIXME: If I press `SPC gg` in gui, tmux status line gets hidden. It should stay visible.
-" FIXME: If I press `SPC gg` in an unzoomed tmux pane,  then press it again
-" to leave goyo mode, the pane is zoomed. The zoomed state should be preserved.
+" FIXME: If I press  `SPC gg` in an  unzoomed tmux pane, then press  it again to
+" leave goyo mode, the pane is zoomed.  The zoomed state should be preserved.
 nno <silent><unique> <space>gg :<c-u>call goyo#start('without_highlighting')<cr>
 nno <silent><unique> <space>gG :<c-u>call goyo#start('with_highlighting')<cr>
 
