@@ -96,7 +96,7 @@ fu goyo#enter() abort "{{{1
         "
         "     ~/.vim/plugged/vim-lg-lib/autoload/lg/styled_comment.vim
         "
-        " Issue: If we  remove a highlight group  in `styled_comment.vim`, we'll
+        " Problem: If we remove a highlight group in `styled_comment.vim`, we'll
         " need to remove it here, and vice versa; duplication issue.
         "}}}
         " TODO: It seems that we don't need to reset the HGs once we leave goyo mode.{{{
