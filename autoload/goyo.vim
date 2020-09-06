@@ -489,17 +489,17 @@ endfu
 
 fu s:parse_arg(arg) abort "{{{1
     if exists('g:goyo_height') || !exists('g:goyo_margin_top') && !exists('g:goyo_margin_bottom')
-        let height = s:relsz(get(g:, 'goyo_height', '85%'), &lines)
+        let height = get(g:, 'goyo_height', '85%')->s:relsz(&lines)
         let yoff = 0
     else
-        let top = max([0, s:relsz(get(g:, 'goyo_margin_top', 4), &lines)])
-        let bot = max([0, s:relsz(get(g:, 'goyo_margin_bottom', 4), &lines)])
+        let top = max([0, get(g:, 'goyo_margin_top', 4)->s:relsz(&lines)])
+        let bot = max([0, get(g:, 'goyo_margin_bottom', 4)->s:relsz(&lines)])
         let height = &lines - top - bot
         let yoff = top - bot
     endif
 
     let dim = {
-        \ 'width': s:relsz(get(g:, 'goyo_width', 80), &columns),
+        \ 'width': get(g:, 'goyo_width', 80)->s:relsz(&columns),
         \ 'height': height,
         \ 'xoff': 0,
         \ 'yoff': yoff,
