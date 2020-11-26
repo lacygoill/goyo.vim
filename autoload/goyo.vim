@@ -289,31 +289,31 @@ fu s:hide_linenr() abort "{{{1
     setl colorcolumn=
 endfu
 
-fu s:maps_nop() abort "{{{1
-    let mapped = filter(['R', 'H', 'J', 'K', 'L', '|', '_'],
-        \ "maparg(\"\<c-w>\" .. v:val, 'n')->empty()")
+def s:Maps_nop(): list<string> #{{{1
+    var mapped = filter(['R', 'H', 'J', 'K', 'L', '|', '_'],
+        {_, v -> maparg("\<c-w>" .. v, 'n')->empty()})
     for c in mapped
         exe 'nno <c-w>' .. escape(c, '|') .. ' <nop>'
     endfor
     return mapped
-endfu
+enddef
 
 fu s:maps_resize() abort "{{{1
     let commands = {
-        \ '=': ':<c-u>let t:goyo_dim = <sid>parse_arg(t:goyo_dim_expr) <bar> call <sid>resize_pads()<cr>',
-        \ '>': ':<c-u>let t:goyo_dim.width = winwidth(0) + 2 * v:count1 <bar> call <sid>resize_pads()<cr>',
-        \ '<': ':<c-u>let t:goyo_dim.width = winwidth(0) - 2 * v:count1 <bar> call <sid>resize_pads()<cr>',
-        \ '+': ':<c-u>let t:goyo_dim.height += 2 * v:count1 <bar> call <sid>resize_pads()<cr>',
-        \ '-': ':<c-u>let t:goyo_dim.height -= 2 * v:count1 <bar> call <sid>resize_pads()<cr>'
+        \ '=': '<cmd>let t:goyo_dim = <sid>parse_arg(t:goyo_dim_expr) <bar> call <sid>resize_pads()<cr>',
+        \ '>': '<cmd>let t:goyo_dim.width = winwidth(0) + 2 * v:count1 <bar> call <sid>resize_pads()<cr>',
+        \ '<': '<cmd>let t:goyo_dim.width = winwidth(0) - 2 * v:count1 <bar> call <sid>resize_pads()<cr>',
+        \ '+': '<cmd>let t:goyo_dim.height += 2 * v:count1 <bar> call <sid>resize_pads()<cr>',
+        \ '-': '<cmd>let t:goyo_dim.height -= 2 * v:count1 <bar> call <sid>resize_pads()<cr>'
         \ }
-    let mapped = keys(commands)->filter("maparg(\"\<c-w>\" .. v:val, 'n')->empty()")
+    let mapped = keys(commands)->filter({_, v -> maparg("\<c-w>" .. v, 'n')->empty()})
     for c in mapped
-        exe 'nno <silent> <c-w>' .. c .. ' ' .. commands[c]
+        exe 'nno <c-w>' .. c .. ' ' .. commands[c]
     endfor
     return mapped
 endfu
 
-nno <silent> <plug>(goyo-resize) :<c-u>call <sid>resize_pads()<cr>
+nno <plug>(goyo-resize) <cmd>call <sid>resize_pads()<cr>
 
 fu s:goyo_on(dim) abort "{{{1
     let dim = s:parse_arg(a:dim)
@@ -340,7 +340,7 @@ fu s:goyo_on(dim) abort "{{{1
     let t:goyo_dim_expr = a:dim
     let t:goyo_pads = {}
     let t:goyo_revert = settings
-    let t:goyo_maps = s:maps_nop()->extend(s:maps_resize())
+    let t:goyo_maps = s:Maps_nop()->extend(s:maps_resize())
     if has('gui_running')
         let t:goyo_revert.guioptions = &guioptions
     endif

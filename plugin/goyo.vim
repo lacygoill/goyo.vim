@@ -7,7 +7,7 @@ let g:loaded_goyo = 1
 
 " Add empty lines  above and below the  selection so that it's  the only visible
 " text in the buffer; like if it was taking vacation, alone on an island.
-xno <silent><unique> <space>gg :<c-u>call goyo#island()<cr>
+xno <unique> <space>gg <c-\><c-n><cmd>call goyo#island()<cr>
 
 " If you have weird thick borders around the window (especially visible in a light colorscheme):{{{
 "
@@ -19,8 +19,8 @@ xno <silent><unique> <space>gg :<c-u>call goyo#island()<cr>
 " FIXME: If I press `SPC gg` in gui, tmux status line gets hidden. It should stay visible.
 " FIXME: If I press  `SPC gg` in an  unzoomed tmux pane, then press  it again to
 " leave goyo mode, the pane is zoomed.  The zoomed state should be preserved.
-nno <silent><unique> <space>gg :<c-u>call goyo#start('without_highlighting')<cr>
-nno <silent><unique> <space>gG :<c-u>call goyo#start('with_highlighting')<cr>
+nno <unique> <space>gg <cmd>call goyo#start('without_highlighting')<cr>
+nno <unique> <space>gG <cmd>call goyo#start('with_highlighting')<cr>
 
 " Commands {{{1
 
