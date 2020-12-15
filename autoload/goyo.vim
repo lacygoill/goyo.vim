@@ -289,7 +289,7 @@ fu s:hide_linenr() abort "{{{1
     setl colorcolumn=
 endfu
 
-def s:Maps_nop(): list<string> #{{{1
+def s:MapsNop(): list<string> #{{{1
     var mapped = filter(['R', 'H', 'J', 'K', 'L', '|', '_'],
         {_, v -> maparg("\<c-w>" .. v, 'n')->empty()})
     for c in mapped
@@ -340,7 +340,7 @@ fu s:goyo_on(dim) abort "{{{1
     let t:goyo_dim_expr = a:dim
     let t:goyo_pads = {}
     let t:goyo_revert = settings
-    let t:goyo_maps = s:Maps_nop()->extend(s:maps_resize())
+    let t:goyo_maps = s:MapsNop()->extend(s:maps_resize())
     if has('gui_running')
         let t:goyo_revert.guioptions = &guioptions
     endif
