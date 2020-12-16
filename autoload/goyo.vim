@@ -57,7 +57,7 @@ fu goyo#enter() abort "{{{1
     do <nomodeline> BufWinEnter
     call setpos('.', pos)
 
-    augroup my_goyo
+    augroup MyGoyo
         au! * <buffer>
         " make sure cursor is not on leading whitespace
         au CursorHold <buffer> if getline('.')->match('^\s*\%' .. col('.') .. 'c\s') >= 0
@@ -174,8 +174,8 @@ fu goyo#leave() abort "{{{1
     "}}}
     do <nomodeline> WinEnter
 
-    au! my_goyo * <buffer>
-    sil! aug! my_goyo
+    au! MyGoyo * <buffer>
+    sil! aug! MyGoyo
     "  │
     "  └ `:h W19`
 
