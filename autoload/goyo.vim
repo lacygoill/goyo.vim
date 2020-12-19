@@ -239,8 +239,7 @@ fu s:setup_pad(bufnr, vert, size, repel) abort "{{{1
 endfu
 
 fu s:resize_pads() abort "{{{1
-    augroup goyop
-        au!
+    augroup goyop | au!
     augroup END
 
     let t:goyo_dim.width = s:const(t:goyo_dim.width, 2, &columns)
