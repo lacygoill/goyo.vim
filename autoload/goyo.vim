@@ -290,7 +290,7 @@ endfu
 
 def s:MapsNop(): list<string> #{{{1
     var mapped = filter(['R', 'H', 'J', 'K', 'L', '|', '_'],
-        {_, v -> maparg("\<c-w>" .. v, 'n')->empty()})
+        (_, v) => maparg("\<c-w>" .. v, 'n')->empty())
     for c in mapped
         exe 'nno <c-w>' .. escape(c, '|') .. ' <nop>'
     endfor
@@ -483,7 +483,7 @@ fu s:relsz(expr, limit) abort "{{{1
     if a:expr !~ '%$'
         return str2nr(a:expr)
     endif
-    return a:limit * str2nr(a:expr[:-2]) / 100
+    return a:limit * str2nr(a:expr[: -2]) / 100
 endfu
 
 fu s:parse_arg(arg) abort "{{{1
