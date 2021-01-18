@@ -83,21 +83,10 @@ prefixed by `+` or `-`. Each component can be given in percentage.
 CONFIGURATION                                               *goyo-configuration*
 ==============================================================================
 
-                                      *g:goyo_width* *g:goyo_height* *g:goyo_linenr*
-
- - `g:goyo_width` (default: 80)
- - `g:goyo_height` (default: 85%)
- - `g:goyo_linenr` (default: 0)
-
-
 < Callbacks >_________________________________________________________________~
                                                                 *goyo-callbacks*
 
-By default, {vim-airline}{4}, {vim-powerline}{5}, {powerline}{6},
-{lightline.vim}{7}, {vim-signify}{8}, and {vim-gitgutter}{9} are temporarily
-disabled while in Goyo mode.
-
-If you have other plugins that you want to disable/enable, or if you want to
+If you have plugins that you want to disable/enable, or if you want to
 change the default settings of Goyo window, you can set up custom routines to
 be triggered on `GoyoEnter` and `GoyoLeave` events.
 >
@@ -126,12 +115,6 @@ be triggered on `GoyoEnter` and `GoyoLeave` events.
 <
 More examples can be found here: {Customization}{10}
 
-                  {4} https://github.com/bling/vim-airline
-                  {5} https://github.com/Lokaltog/vim-powerline
-                  {6} https://github.com/Lokaltog/powerline
-                  {7} https://github.com/itchyny/lightline.vim
-                  {8} https://github.com/mhinz/vim-signify
-                  {9} https://github.com/airblade/vim-gitgutter
                   {10} https://github.com/junegunn/goyo.vim/wiki/Customization
 
 

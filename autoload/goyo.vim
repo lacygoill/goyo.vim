@@ -1,110 +1,117 @@
-fu goyo#island() abort "{{{1
-    let should_collapse =
-        \    line("'<") > 2
-        \ && (line("'<") - 1)->getline() =~# '^\s*$'
-        \ && (line("'<") - 2)->getline() =~# '^\s*$'
-        \ && line("'>") < line('$') - 1
-        \ && (line("'>") + 1)->getline() =~# '^\s*$'
-        \ && (line("'>") + 2)->getline() =~# '^\s*$'
-    if should_collapse
-        " remove superflous empty lines below
-        keepj keepp '>+s/^\%(\_s*\n\)\+/\r/e
-        " same thing above
-        " The order of removal is important.{{{
-        "
-        " We need to remove the empty lines below, before the ones above.
-        " That is because removing the lines  above will change the addresses of
-        " the line below.
-        "}}}
-        keepj keepp '<?^\s*\S?+s/^\%(\_s*\n\)\+/\r/e
-        " the mark set on the start of  the selection has been moved to the next line;
-        " restore it
-        '<-mark <
+vim9 noclear
+
+if exists('loaded') | finish | endif
+var loaded = true
+
+# Interface {{{1
+def goyo#execute(bang: bool, dim: string) #{{{2
+# "dim" = dimensions
+
+    # I'm frequently pressing `zz` when entering goyo mode.
+    # Might as well make `:Goyo` do it automatically for me.
+    norm! zz
+    if bang
+        if exists('#goyo')
+            GoyoOff()
+        endif
     else
-        " add empty lines to clear the view
-        let cnt = winheight(0) / 2
-        call repeat([''], cnt)->append(line("'<") - 1)
-        call repeat([''], cnt)->append(line("'>"))
+        if exists('#goyo') == 0
+            GoyoOn(dim)
+        elseif !empty(dim)
+            if winnr('$') < 5
+                GoyoOff()
+                return goyo#execute(bang, dim)
+            endif
+            var parsed_dim: dict<number> = ParseArg(dim)
+            if !empty(parsed_dim)
+                t:goyo_dim = parsed_dim
+                t:goyo_dim_expr = dim
+                ResizePads()
+            endif
+        else
+            GoyoOff()
+        endif
     endif
-    norm! '<zz
-endfu
+enddef
 
-fu goyo#start(how) abort "{{{1
-    let s:with_highlighting = a:how is# 'with_highlighting'
+def goyo#start(how: string) #{{{2
+    with_highlighting = how == 'with_highlighting'
     exe 'Goyo' .. (!exists('#goyo') ? ' 110' : '!')
-endfu
+enddef
 
-fu goyo#enter() abort "{{{1
-    " Is inspected by other plugins to adapt their behavior.
-    " E.g.: vim-toggle-settings (mappings toggling `'cul'`).
-    let g:in_goyo_mode = 1
-    sil call system('tmux set status off')
-    " FIXME: If we have 2 tmux panes in the same window, Vim is one of them, and
-    " it's not zoomed, when we start goyo mode, we see much less text as usual.
-    " If we have 2 vertical panes, the lines are shorter.
-    " If we have 2 horizontal panes, there are fewer lines.
-    sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
+def goyo#enter() #{{{2
+    # Is inspected by other plugins to adapt their behavior.
+    # E.g.: vim-toggle-settings (mappings toggling `'cul'`).
+    g:in_goyo_mode = true
+    sil system('tmux set status off')
+    # FIXME: If we have 2 tmux panes in the same window, Vim is one of them, and
+    # it's not zoomed, when we start goyo mode, we see much less text as usual.
+    # If we have 2 vertical panes, the lines are shorter.
+    # If we have 2 horizontal panes, there are fewer lines.
+    sil system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
     set noshowcmd
 
-    let [s:winid_save, s:bufnr_save] = [win_getid(), bufnr('%')]
-    let [s:cocu_save, s:cole_save] = [&l:cocu, &l:cole]
+    [winid_save, bufnr_save] = [win_getid(), bufnr('%')]
+    [cocu_save, cole_save] = [&l:cocu, &l:cole]
     setl cocu=nc cole=3
 
-    let pos = getcurpos()
-    " The new window  created by `:tab sp` inherits the  window-local options of
-    " the original window.  But `:tab sp`  doesn't fire `BufWinEnter` so we lose
-    " our position in the changelist.
+    var pos: list<number> = getcurpos()
+    # The new window  created by `:tab sp` inherits the  window-local options of
+    # the original window.  But `:tab sp`  doesn't fire `BufWinEnter` so we lose
+    # our position in the changelist.
     do <nomodeline> BufWinEnter
-    call setpos('.', pos)
+    setpos('.', pos)
 
     augroup MyGoyo
         au! * <buffer>
-        " make sure cursor is not on leading whitespace
+        # make sure cursor is not on leading whitespace
         au CursorHold <buffer> if getline('.')->match('^\s*\%' .. col('.') .. 'c\s') >= 0
-            \ | exe 'norm! _'
-            \ | endif
-        " clear possible error message from command-line (e.g. `E486`)
+            |     exe 'norm! _'
+            | endif
+        # clear possible error message from command-line (e.g. `E486`)
         au CursorHold <buffer> echo
     augroup END
-    " The autocmd doesn't work initially, probably because `CursorHold` has already been fired.{{{
-    "
-    " We could run `do CursorHold` now, but I prefer `norm! _`:
-    " fewer side effects, and position the cursor in a known location right from
-    " the start (helpful with an underline cusor which is harder to spot).
-    "}}}
+    # The autocmd doesn't work initially, probably because `CursorHold` has already been fired.{{{
+    #
+    # We could run `do CursorHold` now, but I prefer `norm! _`:
+    # fewer side effects, and position the cursor in a known location right from
+    # the start (helpful with an underline cusor which is harder to spot).
+    #}}}
     norm! _
 
-    let s:auto_open_fold_was_enabled = 1
+    auto_open_fold_was_enabled = true
     if !exists('b:auto_open_fold_mappings')
-        let s:auto_open_fold_was_enabled = 0
-        call toggle_settings#auto_open_fold('enable')
+        auto_open_fold_was_enabled = false
+        toggle_settings#autoOpenFold(true)
     endif
 
-    " We want to be able to read code blocks in our notes (and probably other syntax groups).
-    if &ft is# 'markdown' | return | endif
+    # We want to be able to read code blocks in our notes (and probably other syntax groups).
+    if &ft == 'markdown'
+        return
+    endif
 
     Limelight
 
-    if !get(s:, 'with_highlighting', 0)
-        " TODO: We need to ignore other highlight groups.{{{
-        "
-        " When we're in goyo mode, usually, we're only interested in the code.
-        " Anything else should be ignored.
-        " Many HGs are missing from the following list.
-        "
-        " I guess most (all?) the HGs we still want to ignore are defined in:
-        "
-        "     ~/.vim/plugged/vim-lg-lib/autoload/lg/styled_comment.vim
-        "
-        " Problem: If we remove a highlight group in `styled_comment.vim`, we'll
-        " need to remove it here, and vice versa; duplication issue.
-        "}}}
-        " TODO: It seems that we don't need to reset the HGs once we leave goyo mode.{{{
-        "
-        " How does it work? Does goyo reload the colorscheme?
-        " Make sure the highlighting is properly restored when we leave goyo mode.
-        "}}}
-        let highlight_groups =<< trim END
+    if !with_highlighting
+        # TODO: We need to ignore other highlight groups.{{{
+        #
+        # When we're in goyo mode, usually, we're only interested in the code.
+        # Anything else should be ignored.
+        # Many HGs are missing from the following list.
+        #
+        # I guess most (all?) the HGs we still want to ignore are defined in:
+        #
+        #     ~/.vim/plugged/vim-lg-lib/autoload/lg/styled_comment.vim
+        #
+        # Problem: If we remove a highlight group in `styled_comment.vim`, we'll
+        # need to remove it here, and vice versa; duplication issue.
+        #}}}
+        # TODO: It seems that we don't need to reset the HGs once we leave goyo mode.{{{
+        #
+        # How does it work? Does goyo reload the colorscheme?
+        # Make sure the highlighting is properly restored when we leave goyo mode.
+        #}}}
+        var highlight_groups: list<string> =<< trim END
             CommentItalic
             CommentUnderlined
             CommentPreProc
@@ -118,12 +125,14 @@ fu goyo#enter() abort "{{{1
             markdownPointer
             markdownRule
         END
-        if &ft isnot# 'help' | let highlight_groups += ['Comment'] | endif
+        if &ft != 'help'
+            highlight_groups += ['Comment']
+        endif
         for group in highlight_groups
             exe 'hi! link ' .. group .. ' Ignore'
         endfor
 
-        let highlight_groups =<< trim END
+        highlight_groups =<< trim END
             Conditional
             Constant
             Delimiter
@@ -144,152 +153,201 @@ fu goyo#enter() abort "{{{1
             exe 'hi ' .. group .. ' term=NONE cterm=NONE ctermfg=NONE ctermbg=NONE gui=NONE guifg=NONE guibg=NONE'
         endfor
     endif
-endfu
+enddef
 
-fu goyo#leave() abort "{{{1
+var cocu_save: string
+var cole_save: number
+var winid_save: number
+var bufnr_save: number
+var with_highlighting: bool
+var auto_open_fold_was_enabled: bool
+
+def goyo#leave() #{{{2
     unlet! g:in_goyo_mode
 
-    sil call system('tmux set status on')
-    sil call system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
+    sil system('tmux set status on')
+    sil system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
 
     set showcmd
-    if winbufnr(s:winid_save) == s:bufnr_save
-        let [tabnr, winnr] = win_id2tabwin(s:winid_save)
-        call settabwinvar(tabnr, winnr, '&cocu', s:cocu_save)
-        call settabwinvar(tabnr, winnr, '&cole', s:cole_save)
+    if winbufnr(winid_save) == bufnr_save
+        var tabnr: number
+        var winnr: number
+        [tabnr, winnr] = win_id2tabwin(winid_save)
+        settabwinvar(tabnr, winnr, '&cocu', cocu_save)
+        settabwinvar(tabnr, winnr, '&cole', cole_save)
     endif
-    unlet! s:cocu_save s:cole_save s:winid_save s:bufnr_save
+    cocu_save = ''
+    cole_save = 0
+    winid_save = 0
+    bufnr_save = 0
 
-    " TODO: Refactor all `:wincmd` into `:call win_execute()`.{{{
-    "
-    " In Vim,  if we've entered  goyo mode in the  bottom split of  2 horizontal
-    " splits, when we  leave goyo mode, the top window  is not squashed anymore;
-    " it's 1 line high; it's probably due to the usage of `:wincmd` somewhere in
-    " this plugin.
-    "
-    " For the moment, we fix the  issue by firing `WinEnter`, so that vim-window
-    " re-maximizes the current window, which will squash the top window.
-    "
-    " Once you've refactored all `:wincmd` into `win_execute()`, remove the next `:do`.
-    "}}}
+    # TODO: Refactor all `:wincmd` into `win_execute()`.{{{
+    #
+    # In Vim,  if we've entered  goyo mode in the  bottom split of  2 horizontal
+    # splits, when we  leave goyo mode, the top window  is not squashed anymore;
+    # it's 1 line high; it's probably due to the usage of `:wincmd` somewhere in
+    # this plugin.
+    #
+    # For the moment, we fix the  issue by firing `WinEnter`, so that vim-window
+    # re-maximizes the current window, which will squash the top window.
+    #
+    # Once you've refactored all `:wincmd` into `win_execute()`, remove the next `:do`.
+    #}}}
     do <nomodeline> WinEnter
 
     au! MyGoyo * <buffer>
     sil! aug! MyGoyo
-    "  │
-    "  └ `:h W19`
+    #  │
+    #  └ `:h W19`
 
     Limelight!
-    if !s:auto_open_fold_was_enabled && exists('b:auto_open_fold_mappings')
-        call toggle_settings#auto_open_fold('disable')
+    if !auto_open_fold_was_enabled && exists('b:auto_open_fold_mappings')
+        toggle_settings#autoOpenFold(false)
     endif
-endfu
+enddef
 
-fu s:const(val, min, max) abort "{{{1
-    return min([max([a:val, a:min]), a:max])
-endfu
+def goyo#island() #{{{2
+    var should_collapse: bool = line("'<") > 2
+        && (line("'<") - 1)->getline() =~ '^\s*$'
+        && (line("'<") - 2)->getline() =~ '^\s*$'
+        && line("'>") < line('$') - 1
+        && (line("'>") + 1)->getline() =~ '^\s*$'
+        && (line("'>") + 2)->getline() =~ '^\s*$'
+    if should_collapse
+        # remove superflous empty lines below
+        keepj keepp :'>+s/^\%(\_s*\n\)\+/\r/e
+        # same thing above
+        # The order of removal is important.{{{
+        #
+        # We need to remove the empty lines below, before the ones above.
+        # That is because removing the lines  above will change the addresses of
+        # the line below.
+        #}}}
+        keepj keepp :'<?^\s*\S?+s/^\%(\_s*\n\)\+/\r/e
+        # the mark set on the start of  the selection has been moved to the next line;
+        # restore it
+        :'<-mark <
+    else
+        # add empty lines to clear the view
+        var cnt: number = winheight(0) / 2
+        repeat([''], cnt)->append(line("'<") - 1)
+        repeat([''], cnt)->append(line("'>"))
+    endif
+    norm! '<zz
+enddef
+#}}}1
+# Core {{{1
+def Const(val: number, min: number, max: number): number #{{{2
+    return [max([val, min]), max]->min()
+enddef
 
-fu s:get_color(group, attr) abort "{{{1
-    return hlID(a:group)->synIDtrans()->synIDattr(a:attr)
-endfu
+def GetColor(group: string, attr: string): string #{{{2
+    return hlID(group)->synIDtrans()->synIDattr(attr)
+enddef
 
-fu s:set_color(group, attr, color) abort "{{{1
-    let gui = has('gui_running') || has('termguicolors') && &termguicolors
-    exe printf('hi %s %s%s=%s', a:group, gui ? 'gui' : 'cterm', a:attr, a:color)
-endfu
+def SetColor(group: string, attr: string, color: string) #{{{2
+    var gui: bool = has('gui_running') || has('termguicolors') && &termguicolors
+    exe printf('hi %s %s%s=%s', group, gui ? 'gui' : 'cterm', attr, color)
+enddef
 
-fu s:blank(repel) abort "{{{1
+def Blank(repel: string) #{{{2
     if bufwinnr(t:goyo_pads.r) <= bufwinnr(t:goyo_pads.l) + 1
-        \ || bufwinnr(t:goyo_pads.b) <= bufwinnr(t:goyo_pads.t) + 3
-        call s:goyo_off()
+    || bufwinnr(t:goyo_pads.b) <= bufwinnr(t:goyo_pads.t) + 3
+        GoyoOff()
     endif
-    exe 'wincmd' a:repel
-endfu
+    exe 'wincmd ' .. repel
+enddef
 
-fu s:init_pad(command) abort "{{{1
-    exe a:command
+def InitPad(command: string): number #{{{2
+    exe command
     setl buftype=nofile bufhidden=wipe nomodifiable nobuflisted noswapfile
         \ nonu nocul nocursorcolumn winfixwidth winfixheight
-    let &l:stl = ' '
+    &l:stl = ' '
     setl nornu
     setl colorcolumn=
-    let bufnr = winbufnr(0)
+    var bufnr: number = winbufnr(0)
     wincmd p
     return bufnr
-endfu
+enddef
 
-fu s:setup_pad(bufnr, vert, size, repel) abort "{{{1
-    let win = bufwinnr(a:bufnr)
-    exe win .. 'wincmd w'
-    exe (a:vert ? 'vertical ' : '') .. 'resize ' .. max([0, a:size])
+def SetupPad( #{{{2
+    bufnr: number,
+    vert: number,
+    size: number,
+    repel: string
+    )
+    var win: number = bufwinnr(bufnr)
+    exe ':' .. win .. 'wincmd w'
+    # TODO: I think  this doesn't work  as expected  for the height,  because of
+    # `vim-window` which maximizes windows' height.
+    noa exe (vert ? 'vertical ' : '') .. 'resize ' .. max([0, size])
     augroup goyop
-        exe 'autocmd WinEnter,CursorMoved <buffer> ++nested call s:blank("' .. a:repel .. '")'
-        au WinLeave <buffer> call s:hide_statusline()
+        BlankRef = function(Blank, [repel])
+        autocmd WinEnter,CursorMoved <buffer> ++nested BlankRef()
+        au WinLeave <buffer> HideStatusline()
     augroup END
 
-    " To hide scrollbars of pad windows in GVim
-    let diff = winheight(0) - line('$') - (has('gui_running') ? 2 : 0)
+    # To hide scrollbars of pad windows in GVim
+    var diff: number = winheight(0) - line('$') - (has('gui_running') ? 2 : 0)
     if diff > 0
         setl modifiable
-        call range(1, diff)->map('""')->append(0)
+        repeat([''], diff)->append(0)
         normal! gg
         setl nomodifiable
     endif
     wincmd p
-endfu
+enddef
+var BlankRef: func
 
-fu s:resize_pads() abort "{{{1
+def ResizePads() #{{{2
     augroup goyop | au!
     augroup END
 
-    let t:goyo_dim.width = s:const(t:goyo_dim.width, 2, &columns)
-    let t:goyo_dim.height = s:const(t:goyo_dim.height, 2, &lines)
+    t:goyo_dim.width = Const(t:goyo_dim.width, 2, &columns)
+    t:goyo_dim.height = Const(t:goyo_dim.height, 2, &lines)
 
-    let vmargin = max([0, (&lines - t:goyo_dim.height) / 2 - 1])
-    let yoff = s:const(t:goyo_dim.yoff, - vmargin, vmargin)
-    let top = vmargin + yoff
-    let bot = vmargin - yoff - 1
-    call s:setup_pad(t:goyo_pads.t, 0, top, 'j')
-    call s:setup_pad(t:goyo_pads.b, 0, bot, 'k')
+    var vmargin: number = max([0, (&lines - t:goyo_dim.height) / 2 - 1])
+    var yoff: number = Const(t:goyo_dim.yoff, - vmargin, vmargin)
+    var top: number = vmargin + yoff
+    var bot: number = vmargin - yoff - 1
+    SetupPad(t:goyo_pads.t, 0, top, 'j')
+    SetupPad(t:goyo_pads.b, 0, bot, 'k')
 
-    let nwidth = max([line('$')->strlen() + 1, &numberwidth])
-    let width = t:goyo_dim.width + (&number ? nwidth : 0)
-    let hmargin = max([0, (&columns - width) / 2 - 1])
-    let xoff = s:const(t:goyo_dim.xoff, - hmargin, hmargin)
-    call s:setup_pad(t:goyo_pads.l, 1, hmargin + xoff, 'l')
-    call s:setup_pad(t:goyo_pads.r, 1, hmargin - xoff, 'h')
-endfu
+    var nwidth: number = max([line('$')->strlen() + 1, &numberwidth])
+    var width: number = t:goyo_dim.width + (&number ? nwidth : 0)
+    var hmargin: number = max([0, (&columns - width) / 2 - 1])
+    var xoff: number = Const(t:goyo_dim.xoff, - hmargin, hmargin)
+    SetupPad(t:goyo_pads.l, 1, hmargin + xoff, 'l')
+    SetupPad(t:goyo_pads.r, 1, hmargin - xoff, 'h')
+enddef
 
-fu s:tranquilize() abort "{{{1
-    let bg = s:get_color('Normal', 'bg#')
+def Tranquilize() #{{{2
+    var bg: string = GetColor('Normal', 'bg#')
     for grp in ['NonText', 'FoldColumn', 'ColorColumn', 'VertSplit',
-        \ 'StatusLine', 'StatusLineNC', 'SignColumn']
-        " -1 on Vim / '' on GVim
-        if bg == -1 || empty(bg)
-            call s:set_color(grp, 'fg', get(g:, 'goyo_bg', 'black'))
-            call s:set_color(grp, 'bg', 'NONE')
+        'StatusLine', 'StatusLineNC', 'SignColumn']
+        if empty(bg)
+            SetColor(grp, 'fg', 'black')
+            SetColor(grp, 'bg', 'NONE')
         else
-            call s:set_color(grp, 'fg', bg)
-            call s:set_color(grp, 'bg', bg)
+            SetColor(grp, 'fg', bg)
+            SetColor(grp, 'bg', bg)
         endif
-        call s:set_color(grp, '', 'NONE')
+        SetColor(grp, '', 'NONE')
     endfor
-endfu
+enddef
 
-fu s:hide_statusline() abort "{{{1
-    let &l:stl = ' '
-endfu
+def HideStatusline() #{{{2
+    &l:stl = ' '
+enddef
 
-fu s:hide_linenr() abort "{{{1
-    if !get(g:, 'goyo_linenr', 0)
-        setl nonu
-        setl nornu
-    endif
+def HideLinenr() #{{{2
+    setl nonu
+    setl nornu
     setl colorcolumn=
-endfu
+enddef
 
-def s:MapsNop(): list<string> #{{{1
-    var mapped = filter(['R', 'H', 'J', 'K', 'L', '|', '_'],
+def MapsNop(): list<string> #{{{2
+    var mapped: list<string> = filter(['R', 'H', 'J', 'K', 'L', '|', '_'],
         (_, v) => maparg("\<c-w>" .. v, 'n')->empty())
     for c in mapped
         exe 'nno <c-w>' .. escape(c, '|') .. ' <nop>'
@@ -297,116 +355,109 @@ def s:MapsNop(): list<string> #{{{1
     return mapped
 enddef
 
-fu s:maps_resize() abort "{{{1
-    let commands = {
-        \ '=': '<cmd>let t:goyo_dim = <sid>parse_arg(t:goyo_dim_expr) <bar> call <sid>resize_pads()<cr>',
-        \ '>': '<cmd>let t:goyo_dim.width = winwidth(0) + 2 * v:count1 <bar> call <sid>resize_pads()<cr>',
-        \ '<': '<cmd>let t:goyo_dim.width = winwidth(0) - 2 * v:count1 <bar> call <sid>resize_pads()<cr>',
-        \ '+': '<cmd>let t:goyo_dim.height += 2 * v:count1 <bar> call <sid>resize_pads()<cr>',
-        \ '-': '<cmd>let t:goyo_dim.height -= 2 * v:count1 <bar> call <sid>resize_pads()<cr>'
-        \ }
-    let mapped = keys(commands)->filter({_, v -> maparg("\<c-w>" .. v, 'n')->empty()})
+def MapsResize(): list<string> #{{{2
+    var commands: dict<string> = {
+        '=': '<cmd>let t:goyo_dim = <sid>ParseArg(t:goyo_dim_expr) <bar> call <sid>ResizePads()<cr>',
+        '>': '<cmd>let t:goyo_dim.width = winwidth(0) + 2 * v:count1 <bar> call <sid>ResizePads()<cr>',
+        '<': '<cmd>let t:goyo_dim.width = winwidth(0) - 2 * v:count1 <bar> call <sid>ResizePads()<cr>',
+        '+': '<cmd>let t:goyo_dim.height += 2 * v:count1 <bar> call <sid>ResizePads()<cr>',
+        '-': '<cmd>let t:goyo_dim.height -= 2 * v:count1 <bar> call <sid>ResizePads()<cr>'
+        }
+    var mapped: list<string> = keys(commands)
+        ->filter((_, v) => maparg("\<c-w>" .. v, 'n')->empty())
     for c in mapped
         exe 'nno <c-w>' .. c .. ' ' .. commands[c]
     endfor
     return mapped
-endfu
+enddef
 
-nno <plug>(goyo-resize) <cmd>call <sid>resize_pads()<cr>
+nno <plug>(goyo-resize) <cmd>call <sid>ResizePads()<cr>
 
-fu s:goyo_on(dim) abort "{{{1
-    let dim = s:parse_arg(a:dim)
-    if empty(dim) | return | endif
+def GoyoOn(arg_dim: string) #{{{2
+    var dim: dict<number> = ParseArg(arg_dim)
+    if empty(dim)
+        return
+    endif
 
-    let s:orig_tab = tabpagenr()
-    let settings = {
-        \ 'laststatus': &laststatus,
-        \   'showtabline': &showtabline,
-        \   'fillchars': &fillchars,
-        \   'winminwidth': &winminwidth,
-        \   'winwidth': &winwidth,
-        \   'winminheight': &winminheight,
-        \   'winheight': &winheight,
-        \   'ruler': &ruler,
-        \   'sidescroll': &sidescroll,
-        \   'sidescrolloff': &sidescrolloff,
-        \ }
+    orig_tab = tabpagenr()
+    var settings: dict<any> = {
+        laststatus: &laststatus,
+        showtabline: &showtabline,
+        fillchars: &fillchars,
+        winminwidth: &winminwidth,
+        winwidth: &winwidth,
+        winminheight: &winminheight,
+        winheight: &winheight,
+        ruler: &ruler,
+        sidescroll: &sidescroll,
+        sidescrolloff: &sidescrolloff,
+        }
 
     tab split
 
-    let t:goyo_master = winbufnr(0)
-    let t:goyo_dim = dim
-    let t:goyo_dim_expr = a:dim
-    let t:goyo_pads = {}
-    let t:goyo_revert = settings
-    let t:goyo_maps = s:MapsNop()->extend(s:maps_resize())
+    t:goyo_master = winbufnr(0)
+    t:goyo_dim = dim
+    t:goyo_dim_expr = arg_dim
+    t:goyo_pads = {}
+    t:goyo_revert = settings
+    t:goyo_maps = MapsNop()->extend(MapsResize())
     if has('gui_running')
-        let t:goyo_revert.guioptions = &guioptions
+        t:goyo_revert.guioptions = &guioptions
     endif
 
-    " vim-gitgutter
-    let t:goyo_disabled_gitgutter = get(g:, 'gitgutter_enabled', 0)
-    if t:goyo_disabled_gitgutter
-        sil! GitGutterDisable
-    endif
-
-    " vim-signify
-    let t:goyo_disabled_signify = exists('b:sy') && b:sy.active
-    if t:goyo_disabled_signify
-        SignifyToggle
-    endif
-
-    call s:hide_linenr()
-    " Global options
-    let &winheight = max([&winminheight, 1])
+    HideLinenr()
+    # Global options
+    &winheight = max([&winminheight, 1])
     set winminheight=1
     set winheight=1
     set winminwidth=1 winwidth=1
     set laststatus=0
     set showtabline=0
     set noruler
-    let &fcs ..= 'vert: ,stl: ,stlnc: '
+    &fcs ..= ',vert: ,stl: ,stlnc: '
     set sidescroll=1
     set sidescrolloff=0
 
-    " Hide left-hand scrollbars
+    # Hide left-hand scrollbars
     if has('gui_running')
         set guioptions-=l
         set guioptions-=L
     endif
 
-    let t:goyo_pads.l = s:init_pad('vertical topleft new')
-    let t:goyo_pads.r = s:init_pad('vertical botright new')
-    let t:goyo_pads.t = s:init_pad('topleft new')
-    let t:goyo_pads.b = s:init_pad('botright new')
+    t:goyo_pads.l = InitPad('vertical topleft new')
+    t:goyo_pads.r = InitPad('vertical botright new')
+    t:goyo_pads.t = InitPad('topleft new')
+    t:goyo_pads.b = InitPad('botright new')
 
-    call s:resize_pads()
-    call s:tranquilize()
+    ResizePads()
+    Tranquilize()
 
     augroup goyo | au!
-        au TabLeave    *        ++nested call s:goyo_off()
-        au VimResized  *        call s:resize_pads()
-        au ColorScheme *        call s:tranquilize()
-        au BufWinEnter *        call s:hide_linenr() | call s:hide_statusline()
-        au WinEnter,WinLeave *  call s:hide_statusline()
+        au TabLeave    *        ++nested GoyoOff()
+        au VimResized  *        ResizePads()
+        au ColorScheme *        Tranquilize()
+        au BufWinEnter *        HideLinenr() | HideStatusline()
+        au WinEnter,WinLeave *  HideStatusline()
     augroup END
 
-    call s:hide_statusline()
-    if exists('g:goyo_callbacks[0]')
-        call g:goyo_callbacks[0]()
-    endif
+    HideStatusline()
     if exists('#User#GoyoEnter')
-        doautocmd <nomodeline> User GoyoEnter
+        do <nomodeline> User GoyoEnter
     endif
-endfu
+enddef
+var orig_tab: number
 
-fu s:goyo_off() abort "{{{1
-    if !exists('#goyo') | return | endif
+def GoyoOff() #{{{2
+    if !exists('#goyo')
+        return
+    endif
 
-    " Oops, not this tab
-    if !exists('t:goyo_revert') | return | endif
+    # Oops, not this tab
+    if !exists('t:goyo_revert')
+        return
+    endif
 
-    " Clear auto commands
+    # Clear auto commands
     exe 'au! goyo' | aug! goyo
     exe 'au! goyop' | aug! goyop
 
@@ -414,11 +465,10 @@ fu s:goyo_off() abort "{{{1
         exe 'nunmap <c-w>' .. escape(c, '|')
     endfor
 
-    let goyo_revert = t:goyo_revert
-    let goyo_disabled_gitgutter = t:goyo_disabled_gitgutter
-    let goyo_disabled_signify = t:goyo_disabled_signify
-    let goyo_orig_buffer = t:goyo_master
-    let [line, col] = [line('.'), col('.')]
+    var goyo_revert: dict<any> = t:goyo_revert
+    var goyo_orig_buffer: number = t:goyo_master
+    var line: number = line('.')
+    var col: number = col('.')
 
     if tabpagenr() == 1
         tabnew
@@ -426,124 +476,83 @@ fu s:goyo_off() abort "{{{1
         bd
     endif
     tabclose
-    exe 'normal! ' .. s:orig_tab .. 'gt'
+    exe 'normal! ' .. orig_tab .. 'gt'
     if winbufnr(0) == goyo_orig_buffer
-        " Doesn't work if window closed with `q`
+        # Doesn't work if window closed with `q`
         exe printf('normal! %dG%d|', line, col)
     endif
 
-    let wmw = remove(goyo_revert, 'winminwidth')
-    let ww = remove(goyo_revert, 'winwidth')
-    let &winwidth = ww
-    let &winminwidth = wmw
-    let wmh = remove(goyo_revert, 'winminheight')
-    let wh = remove(goyo_revert, 'winheight')
-    let &winheight = max([wmh, 1])
-    let &winminheight = wmh
-    let &winheight = wh
+    var wmw: number = remove(goyo_revert, 'winminwidth')
+    var ww: number = remove(goyo_revert, 'winwidth')
+    &winwidth = ww
+    &winminwidth = wmw
+    var wmh: number = remove(goyo_revert, 'winminheight')
+    var wh: number = remove(goyo_revert, 'winheight')
+    &winheight = max([wmh, 1])
+    &winminheight = wmh
+    &winheight = wh
 
     for [k, v] in items(goyo_revert)
-        exe printf('let &%s = %s', k, string(v))
+        exe printf('&%s = %s', k, string(v))
     endfor
-    " TODO: Why does junegunn re-set the colorscheme?
-    "
-    " For us, it's helpful,  because we clear some HGs while  in goyo mode, like
-    " `PreProc` used to highlight the title of  a comment; and we want them back
-    " when when we leave goyo mode.
+    # TODO: Why does junegunn re-set the colorscheme?
+    #
+    # For us, it's helpful,  because we clear some HGs while  in goyo mode, like
+    # `PreProc` used to highlight the title of  a comment; and we want them back
+    # when when we leave goyo mode.
     exe 'colo ' .. get(g:, 'colors_name', 'default')
 
-    if goyo_disabled_gitgutter
-        sil! GitGutterEnable
-    endif
-
-    if goyo_disabled_signify
-        " Why `:exe`?{{{
-        "
-        " `:SignifyToggle` does not need it; it's correctly defined with `-bar`.
-        " However, if the command does not exist, `E171: Missing :endif` will be raised.
-        " That's probably because Vim fails to parse an unknown command:
-        "
-        "     $ vim -Nu NONE -S <(echo 'if 0 | not_a_cmd | endif')
-        "     E171: Missing :endif~
-        "
-        " See: https://github.com/neovim/neovim/issues/11136#issuecomment-537253732
-        "}}}
-        sil! if !b:sy.active | exe 'SignifyToggle' | endif
-    endif
-
-    if exists('g:goyo_callbacks[1]')
-        call g:goyo_callbacks[1]()
-    endif
     if exists('#User#GoyoLeave')
         do <nomodeline> User GoyoLeave
     endif
-endfu
+enddef
 
-fu s:relsz(expr, limit) abort "{{{1
-    if a:expr !~ '%$'
-        return str2nr(a:expr)
+def Relsz(expr: string, limit: number): number #{{{2
+    if expr !~ '%$'
+        return str2nr(expr)
     endif
-    return a:limit * str2nr(a:expr[: -2]) / 100
-endfu
+    return limit * str2nr(expr[: -2]) / 100
+enddef
 
-fu s:parse_arg(arg) abort "{{{1
-    if exists('g:goyo_height') || !exists('g:goyo_margin_top') && !exists('g:goyo_margin_bottom')
-        let height = get(g:, 'goyo_height', '85%')->s:relsz(&lines)
-        let yoff = 0
-    else
-        let top = max([0, get(g:, 'goyo_margin_top', 4)->s:relsz(&lines)])
-        let bot = max([0, get(g:, 'goyo_margin_bottom', 4)->s:relsz(&lines)])
-        let height = &lines - top - bot
-        let yoff = top - bot
-    endif
+def ParseArg(arg: string): dict<number> #{{{2
+    var height: number = '85%'->Relsz(&lines)
+    var yoff: number = 0
 
-    let dim = {
-        \ 'width': get(g:, 'goyo_width', 80)->s:relsz(&columns),
-        \ 'height': height,
-        \ 'xoff': 0,
-        \ 'yoff': yoff,
-        \ }
-    if empty(a:arg)
+    var dim: dict<number> = {
+        width: '80'->Relsz(&columns),
+        height: height,
+        xoff: 0,
+        yoff: yoff,
+        }
+    if empty(arg)
         return dim
     endif
-    let parts = matchlist(a:arg, '^\s*\([0-9]\+%\=\)\=\([+-][0-9]\+%\=\)\=\%(x\([0-9]\+%\=\)\=\([+-][0-9]\+%\=\)\=\)\=\s*$')
+    var parts: list<string> = matchlist(arg,
+           '^\s*\([0-9]\+%\=\)\='
+        .. '\([+-][0-9]\+%\=\)\='
+        .. '\%('
+        ..     'x\([0-9]\+%\=\)\='
+        ..     '\([+-][0-9]\+%\=\)\='
+        .. '\)\='
+        .. '\s*$')
     if empty(parts)
         echohl WarningMsg
-        echo 'Invalid dimension expression: ' .. a:arg
+        echo 'Invalid dimension expression: ' .. arg
         echohl None
         return {}
     endif
-    if !empty(parts[1]) | let dim.width = s:relsz(parts[1], &columns) | endif
-    if !empty(parts[2]) | let dim.xoff = s:relsz(parts[2], &columns) | endif
-    if !empty(parts[3]) | let dim.height = s:relsz(parts[3], &lines)   | endif
-    if !empty(parts[4]) | let dim.yoff = s:relsz(parts[4], &lines)   | endif
-    return dim
-endfu
-
-fu goyo#execute(bang, dim) abort "{{{1
-    " I'm frequently pressing `zz` when entering goyo mode.
-    " Might as well make `:Goyo` do it automatically for me.
-    norm! zz
-    if a:bang
-        if exists('#goyo')
-            call s:goyo_off()
-        endif
-    else
-        if exists('#goyo') == 0
-            call s:goyo_on(a:dim)
-        elseif !empty(a:dim)
-            if winnr('$') < 5
-                call s:goyo_off()
-                return goyo#execute(a:bang, a:dim)
-            endif
-            let dim = s:parse_arg(a:dim)
-            if !empty(dim)
-                let t:goyo_dim = dim
-                let t:goyo_dim_expr = a:dim
-                call s:resize_pads()
-            endif
-        else
-            call s:goyo_off()
-        endif
+    if !empty(parts[1])
+        dim.width = Relsz(parts[1], &columns)
     endif
-endfu
+    if !empty(parts[2])
+        dim.xoff = Relsz(parts[2], &columns)
+    endif
+    if !empty(parts[3])
+        dim.height = Relsz(parts[3], &lines)
+    endif
+    if !empty(parts[4])
+        dim.yoff = Relsz(parts[4], &lines)
+    endif
+    return dim
+enddef
+
