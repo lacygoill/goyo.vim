@@ -287,7 +287,7 @@ def SetupPad( #{{{2
         au WinLeave <buffer> HideStatusline()
     augroup END
 
-    # To hide scrollbars of pad windows in GVim
+    # to hide scrollbars of pad windows in the GUI
     var diff: number = winheight(0) - line('$') - (has('gui_running') ? 2 : 0)
     if diff > 0
         setl modifiable
