@@ -348,7 +348,7 @@ enddef
 
 def MapsNop(): list<string> #{{{2
     var mapped: list<string> = filter(['R', 'H', 'J', 'K', 'L', '|', '_'],
-        (_, v) => maparg("\<c-w>" .. v, 'n')->empty())
+        (_, v: string): bool => maparg("\<c-w>" .. v, 'n')->empty())
     for c in mapped
         exe 'nno <c-w>' .. escape(c, '|') .. ' <nop>'
     endfor
@@ -364,7 +364,7 @@ def MapsResize(): list<string> #{{{2
         '-': '<cmd>let t:goyo_dim.height -= 2 * v:count1 <bar> call <sid>ResizePads()<cr>'
         }
     var mapped: list<string> = keys(commands)
-        ->filter((_, v) => maparg("\<c-w>" .. v, 'n')->empty())
+        ->filter((_, v: string): bool => maparg("\<c-w>" .. v, 'n')->empty())
     for c in mapped
         exe 'nno <c-w>' .. c .. ' ' .. commands[c]
     endfor
