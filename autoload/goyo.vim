@@ -82,7 +82,7 @@ def goyo#enter() #{{{2
     auto_open_fold_was_enabled = true
     if !exists('b:auto_open_fold_mappings')
         auto_open_fold_was_enabled = false
-        toggle_settings#autoOpenFold(true)
+        toggleSettings#autoOpenFold(true)
     endif
 
     # We want to be able to read code blocks in our notes (and probably other syntax groups).
@@ -101,9 +101,9 @@ def goyo#enter() #{{{2
         #
         # I guess most (all?) the HGs we still want to ignore are defined in:
         #
-        #     ~/.vim/plugged/vim-lg-lib/autoload/lg/styled_comment.vim
+        #     ~/.vim/plugged/vim-lg-lib/autoload/lg/styledComment.vim
         #
-        # Problem: If we remove a highlight group in `styled_comment.vim`, we'll
+        # Problem: If we remove a  highlight group in `styledComment.vim`, we'll
         # need to remove it here, and vice versa; duplication issue.
         #}}}
         # TODO: It seems that we don't need to reset the HGs once we leave goyo mode.{{{
@@ -202,7 +202,7 @@ def goyo#leave() #{{{2
 
     Limelight!
     if !auto_open_fold_was_enabled && exists('b:auto_open_fold_mappings')
-        toggle_settings#autoOpenFold(false)
+        toggleSettings#autoOpenFold(false)
     endif
 enddef
 
