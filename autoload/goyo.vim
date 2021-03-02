@@ -347,8 +347,8 @@ def HideLinenr() #{{{2
 enddef
 
 def MapsNop(): list<string> #{{{2
-    var mapped: list<string> = filter(['R', 'H', 'J', 'K', 'L', '|', '_'],
-        (_, v: string): bool => maparg("\<c-w>" .. v, 'n')->empty())
+    var mapped: list<string> = ['R', 'H', 'J', 'K', 'L', '|', '_']
+        ->filter((_, v: string): bool => maparg("\<c-w>" .. v, 'n')->empty())
     for c in mapped
         exe 'nno <c-w>' .. escape(c, '|') .. ' <nop>'
     endfor
