@@ -313,7 +313,7 @@ def ResizePads() #{{{2
     SetupPad(t:goyo_pads.t, 0, top, 'j')
     SetupPad(t:goyo_pads.b, 0, bot, 'k')
 
-    var nwidth: number = max([line('$')->strlen() + 1, &numberwidth])
+    var nwidth: number = max([line('$')->len() + 1, &numberwidth])
     var width: number = t:goyo_dim.width + (&number ? nwidth : 0)
     var hmargin: number = max([0, (&columns - width) / 2 - 1])
     var xoff: number = Const(t:goyo_dim.xoff, - hmargin, hmargin)
