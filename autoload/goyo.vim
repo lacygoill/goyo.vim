@@ -467,7 +467,7 @@ def GoyoOff() #{{{2
 
     var goyo_revert: dict<any> = t:goyo_revert
     var goyo_orig_buffer: number = t:goyo_master
-    var line: number = line('.')
+    var lnum: number = line('.')
     var col: number = col('.')
 
     if tabpagenr() == 1
@@ -479,7 +479,7 @@ def GoyoOff() #{{{2
     exe 'normal! ' .. orig_tab .. 'gt'
     if winbufnr(0) == goyo_orig_buffer
         # Doesn't work if window closed with `q`
-        exe printf('normal! %dG%d|', line, col)
+        exe printf('normal! %dG%d|', lnum, col)
     endif
 
     var wmw: number = remove(goyo_revert, 'winminwidth')

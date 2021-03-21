@@ -16,7 +16,7 @@ xno <unique> <space>gg <c-\><c-n><cmd>call goyo#island()<cr>
 # xterm and st.
 #}}}
 
-# FIXME: If I press `SPC gg` in gui, tmux status line gets hidden. It should stay visible.
+# FIXME: If I press `SPC gg` in gui, tmux status line gets hidden.  It should stay visible.
 # FIXME: If I press  `SPC gg` in an  unzoomed tmux pane, then press  it again to
 # leave goyo mode, the pane is zoomed.  The zoomed state should be preserved.
 nno <unique> <space>gg <cmd>call goyo#start('without_highlighting')<cr>
