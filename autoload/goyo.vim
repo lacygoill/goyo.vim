@@ -237,7 +237,11 @@ def goyo#island() #{{{2
 enddef
 #}}}1
 # Core {{{1
-def Const(val: number, min: number, max: number): number #{{{2
+def Const( #{{{2
+    val: number,
+    min: number,
+    max: number
+): number
     return [max([val, min]), max]->min()
 enddef
 
@@ -245,7 +249,11 @@ def GetColor(group: string, attr: string): string #{{{2
     return hlID(group)->synIDtrans()->synIDattr(attr)
 enddef
 
-def SetColor(group: string, attr: string, color: string) #{{{2
+def SetColor( #{{{2
+    group: string,
+    attr: string,
+    color: string
+)
     var gui: bool = has('gui_running') || has('termguicolors') && &termguicolors
     exe printf('hi %s %s%s=%s', group, gui ? 'gui' : 'cterm', attr, color)
 enddef
@@ -275,7 +283,7 @@ def SetupPad( #{{{2
     vert: number,
     size: number,
     repel: string
-    )
+)
     var win: number = bufwinnr(bufnr)
     exe ':' .. win .. 'wincmd w'
     # TODO: I think  this doesn't work  as expected  for the height,  because of
@@ -362,7 +370,7 @@ def MapsResize(): list<string> #{{{2
         '<': '<cmd>let t:goyo_dim.width = winwidth(0) - 2 * v:count1 <bar> call <sid>ResizePads()<cr>',
         '+': '<cmd>let t:goyo_dim.height += 2 * v:count1 <bar> call <sid>ResizePads()<cr>',
         '-': '<cmd>let t:goyo_dim.height -= 2 * v:count1 <bar> call <sid>ResizePads()<cr>'
-        }
+    }
     var mapped: list<string> = keys(commands)
         ->filter((_, v: string): bool => maparg("\<c-w>" .. v, 'n')->empty())
     for c in mapped
@@ -391,7 +399,7 @@ def GoyoOn(arg_dim: string) #{{{2
         ruler: &ruler,
         sidescroll: &sidescroll,
         sidescrolloff: &sidescrolloff,
-        }
+    }
 
     tab split
 
@@ -433,11 +441,11 @@ def GoyoOn(arg_dim: string) #{{{2
     Tranquilize()
 
     augroup goyo | au!
-        au TabLeave    *        ++nested GoyoOff()
-        au VimResized  *        ResizePads()
-        au ColorScheme *        Tranquilize()
-        au BufWinEnter *        HideLinenr() | HideStatusline()
-        au WinEnter,WinLeave *  HideStatusline()
+        au TabLeave * ++nested GoyoOff()
+        au VimResized * ResizePads()
+        au ColorScheme * Tranquilize()
+        au BufWinEnter * HideLinenr() | HideStatusline()
+        au WinEnter,WinLeave * HideStatusline()
     augroup END
 
     HideStatusline()
@@ -523,7 +531,7 @@ def ParseArg(arg: string): dict<number> #{{{2
         height: height,
         xoff: 0,
         yoff: yoff,
-        }
+    }
     if empty(arg)
         return dim
     endif
