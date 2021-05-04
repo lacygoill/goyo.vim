@@ -86,7 +86,7 @@ def goyo#enter() #{{{2
     endif
 
     # We want to be able to read code blocks in our notes (and probably other syntax groups).
-    if &ft == 'markdown'
+    if &filetype == 'markdown'
         return
     endif
 
@@ -101,7 +101,7 @@ def goyo#enter() #{{{2
         #
         # I guess most (all?) the HGs we still want to ignore are defined in:
         #
-        #     ~/.vim/plugged/vim-lg-lib/autoload/lg/styledComment.vim
+        #     ~/.vim/pack/mine/opt/lg-lib/import/lg/styledComment.vim
         #
         # Problem: If we remove a  highlight group in `styledComment.vim`, we'll
         # need to remove it here, and vice versa; duplication issue.
@@ -125,7 +125,7 @@ def goyo#enter() #{{{2
             markdownPointer
             markdownRule
         END
-        if &ft != 'help'
+        if &filetype != 'help'
             highlight_groups += ['Comment']
         endif
         for group in highlight_groups
@@ -285,10 +285,10 @@ def SetupPad( #{{{2
     repel: string
 )
     var win: number = bufwinnr(bufnr)
-    exe ':' .. win .. 'wincmd w'
+    win_getid(win)->win_gotoid()
     # TODO: I think  this doesn't work  as expected  for the height,  because of
     # `vim-window` which maximizes windows' height.
-    noa exe (vert ? 'vertical ' : '') .. 'resize ' .. max([0, size])
+    exe (vert ? 'vertical ' : '') .. 'resize ' .. max([0, size])
     augroup goyop
         BlankRef = function(Blank, [repel])
         autocmd WinEnter,CursorMoved <buffer> ++nested BlankRef()
@@ -466,8 +466,10 @@ def GoyoOff() #{{{2
     endif
 
     # Clear auto commands
-    exe 'au! goyo' | aug! goyo
-    exe 'au! goyop' | aug! goyop
+    autocmd! goyo
+    augroup! goyo
+    autocmd! goyop
+    augroup! goyop
 
     for c in t:goyo_maps
         exe 'nunmap <c-w>' .. escape(c, '|')
