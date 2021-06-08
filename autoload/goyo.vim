@@ -41,7 +41,7 @@ enddef
 
 def goyo#enter() #{{{2
     # Is inspected by other plugins to adapt their behavior.
-    # E.g.: vim-toggle-settings (mappings toggling `'cul'`).
+    # E.g.: vim-toggle-settings (mappings toggling `'cursorline'`).
     g:in_goyo_mode = true
     sil system('tmux set status off')
     # FIXME: If we have 2 tmux panes in the same window, Vim is one of them, and
@@ -49,11 +49,12 @@ def goyo#enter() #{{{2
     # If we have 2 vertical panes, the lines are shorter.
     # If we have 2 horizontal panes, there are fewer lines.
     sil system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
-    set noshowcmd
+    &showcmd = false
 
     [winid_save, bufnr_save] = [win_getid(), bufnr('%')]
-    [cocu_save, cole_save] = [&l:cocu, &l:cole]
-    setl cocu=nc cole=3
+    [concealcursor_save, conceallevel_save] = [&l:concealcursor, &l:conceallevel]
+    &l:concealcursor = 'nc'
+    &l:conceallevel = 3
 
     var pos: list<number> = getcurpos()
     # The new window  created by `:tab sp` inherits the  window-local options of
@@ -155,8 +156,8 @@ def goyo#enter() #{{{2
     endif
 enddef
 
-var cocu_save: string
-var cole_save: number
+var concealcursor_save: string
+var conceallevel_save: number
 var winid_save: number
 var bufnr_save: number
 var with_highlighting: bool
@@ -168,16 +169,16 @@ def goyo#leave() #{{{2
     sil system('tmux set status on')
     sil system('[[ $(tmux display -p "#{window_zoomed_flag}") -eq 0 ]] && tmux resizep -Z')
 
-    set showcmd
+    &showcmd = true
     if winbufnr(winid_save) == bufnr_save
         var tabnr: number
         var winnr: number
         [tabnr, winnr] = win_id2tabwin(winid_save)
-        settabwinvar(tabnr, winnr, '&cocu', cocu_save)
-        settabwinvar(tabnr, winnr, '&cole', cole_save)
+        settabwinvar(tabnr, winnr, '&concealcursor', concealcursor_save)
+        settabwinvar(tabnr, winnr, '&conceallevel', conceallevel_save)
     endif
-    cocu_save = ''
-    cole_save = 0
+    concealcursor_save = ''
+    conceallevel_save = 0
     winid_save = 0
     bufnr_save = 0
 
@@ -268,11 +269,21 @@ enddef
 
 def InitPad(command: string): number #{{{2
     exe command
-    setl buftype=nofile bufhidden=wipe nomodifiable nobuflisted noswapfile
-        \ nonu nocul nocursorcolumn winfixwidth winfixheight
-    &l:stl = ' '
-    setl nornu
-    setl colorcolumn=
+
+    &l:bufhidden = 'wipe'
+    &l:buflisted = false
+    &l:buftype = 'nofile'
+    &l:colorcolumn = ''
+    &l:cursorcolumn = false
+    &l:cursorline = false
+    &l:modifiable = false
+    &l:number = false
+    &l:relativenumber = false
+    &l:statusline = ' '
+    &l:swapfile = false
+    &l:winfixheight = true
+    &l:winfixwidth = true
+
     var bufnr: number = winbufnr(0)
     wincmd p
     return bufnr
@@ -280,7 +291,7 @@ enddef
 
 def SetupPad( #{{{2
     bufnr: number,
-    vert: number,
+    vert: bool,
     size: number,
     repel: string
 )
@@ -298,10 +309,10 @@ def SetupPad( #{{{2
     # to hide scrollbars of pad windows in the GUI
     var diff: number = winheight(0) - line('$') - (has('gui_running') ? 2 : 0)
     if diff > 0
-        setl modifiable
+        &l:modifiable = true
         repeat([''], diff)->append(0)
         normal! gg
-        setl nomodifiable
+        &l:modifiable = false
     endif
     wincmd p
 enddef
@@ -318,15 +329,15 @@ def ResizePads() #{{{2
     var yoff: number = Const(t:goyo_dim.yoff, - vmargin, vmargin)
     var top: number = vmargin + yoff
     var bot: number = vmargin - yoff - 1
-    SetupPad(t:goyo_pads.t, 0, top, 'j')
-    SetupPad(t:goyo_pads.b, 0, bot, 'k')
+    SetupPad(t:goyo_pads.t, false, top, 'j')
+    SetupPad(t:goyo_pads.b, false, bot, 'k')
 
     var nwidth: number = max([line('$')->len() + 1, &numberwidth])
     var width: number = t:goyo_dim.width + (&number ? nwidth : 0)
     var hmargin: number = max([0, (&columns - width) / 2 - 1])
     var xoff: number = Const(t:goyo_dim.xoff, - hmargin, hmargin)
-    SetupPad(t:goyo_pads.l, 1, hmargin + xoff, 'l')
-    SetupPad(t:goyo_pads.r, 1, hmargin - xoff, 'h')
+    SetupPad(t:goyo_pads.l, true, hmargin + xoff, 'l')
+    SetupPad(t:goyo_pads.r, true, hmargin - xoff, 'h')
 enddef
 
 def Tranquilize() #{{{2
@@ -345,13 +356,13 @@ def Tranquilize() #{{{2
 enddef
 
 def HideStatusline() #{{{2
-    &l:stl = ' '
+    &l:statusline = ' '
 enddef
 
 def HideLinenr() #{{{2
-    setl nonu
-    setl nornu
-    setl colorcolumn=
+    &l:number = false
+    &l:relativenumber = false
+    &l:colorcolumn = ''
 enddef
 
 def MapsNop(): list<string> #{{{2
@@ -415,16 +426,17 @@ def GoyoOn(arg_dim: string) #{{{2
 
     HideLinenr()
     # Global options
-    &winheight = max([&winminheight, 1])
-    set winminheight=1
-    set winheight=1
-    set winminwidth=1 winwidth=1
-    set laststatus=0
-    set showtabline=0
-    set noruler
-    &fcs ..= ',vert: ,stl: ,stlnc: '
-    set sidescroll=1
-    set sidescrolloff=0
+    &winheight = [&winminheight, 1]->max()
+    &winminheight = 1
+    &winheight = 1
+    &winminwidth = 1
+    &winwidth = 1
+    &laststatus = 0
+    &showtabline = 0
+    &ruler = false
+    &fillchars ..= ',vert: ,stl: ,stlnc: '
+    &sidescroll = 1
+    &sidescrolloff = 0
 
     # Hide left-hand scrollbars
     if has('gui_running')
@@ -492,15 +504,15 @@ def GoyoOff() #{{{2
         exe printf('normal! %dG%d|', lnum, col)
     endif
 
-    var wmw: number = remove(goyo_revert, 'winminwidth')
-    var ww: number = remove(goyo_revert, 'winwidth')
-    &winwidth = ww
-    &winminwidth = wmw
-    var wmh: number = remove(goyo_revert, 'winminheight')
-    var wh: number = remove(goyo_revert, 'winheight')
-    &winheight = max([wmh, 1])
-    &winminheight = wmh
-    &winheight = wh
+    var winminwidth: number = remove(goyo_revert, 'winminwidth')
+    var whichwrap: number = remove(goyo_revert, 'winwidth')
+    &winwidth = whichwrap
+    &winminwidth = winminwidth
+    var winminheight: number = remove(goyo_revert, 'winminheight')
+    var winheight: number = remove(goyo_revert, 'winheight')
+    &winheight = max([winminheight, 1])
+    &winminheight = winminheight
+    &winheight = winheight
 
     for [k, v] in items(goyo_revert)
         exe printf('&%s = %s', k, string(v))

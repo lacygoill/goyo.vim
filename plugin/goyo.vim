@@ -11,7 +11,7 @@ xno <unique> <space>gg <c-\><c-n><cmd>call goyo#island()<cr>
 
 # If you have weird thick borders around the window (especially visible in a light colorscheme):{{{
 #
-# You need to temporarily disable `'tgc'`, before running `:Goyo`.
+# You need to temporarily disable `'termguicolors'`, before running `:Goyo`.
 # The issue  is specific to urxvt.   I can't reproduce in  other terminals, like
 # xterm and st.
 #}}}
