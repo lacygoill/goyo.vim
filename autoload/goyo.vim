@@ -216,7 +216,7 @@ def goyo#island() #{{{2
         && (line("'>") + 2)->getline() =~ '^\s*$'
     if should_collapse
         # remove superflous empty lines below
-        keepj keepp :'>+s/^\%(\_s*\n\)\+/\r/e
+        keepj keepp :'>+ s/^\%(\_s*\n\)\+/\r/e
         # same thing above
         # The order of removal is important.{{{
         #
@@ -224,10 +224,10 @@ def goyo#island() #{{{2
         # That is because removing the lines  above will change the addresses of
         # the line below.
         #}}}
-        keepj keepp :'<?^\s*\S?+s/^\%(\_s*\n\)\+/\r/e
+        keepj keepp :'<?^\s*\S?+ s/^\%(\_s*\n\)\+/\r/e
         # the mark set on the start of  the selection has been moved to the next line;
         # restore it
-        :'<-mark <
+        :'<- mark <
     else
         # add empty lines to clear the view
         var cnt: number = winheight(0) / 2
@@ -302,7 +302,7 @@ def SetupPad( #{{{2
     exe (vert ? 'vertical ' : '') .. 'resize ' .. max([0, size])
     augroup goyop
         BlankRef = function(Blank, [repel])
-        autocmd WinEnter,CursorMoved <buffer> ++nested BlankRef()
+        au WinEnter,CursorMoved <buffer> ++nested BlankRef()
         au WinLeave <buffer> HideStatusline()
     augroup END
 
