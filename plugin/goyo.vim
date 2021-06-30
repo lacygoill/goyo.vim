@@ -7,7 +7,7 @@ var loaded = true
 
 # Add empty lines  above and below the  selection so that it's  the only visible
 # text in the buffer; like if it was taking vacation, alone on an island.
-xno <unique> <space>gg <c-\><c-n><cmd>call goyo#island()<cr>
+xnoremap <unique> <Space>gg <C-\><C-N><Cmd>call goyo#island()<CR>
 
 # If you have weird thick borders around the window (especially visible in a light colorscheme):{{{
 #
@@ -19,8 +19,8 @@ xno <unique> <space>gg <c-\><c-n><cmd>call goyo#island()<cr>
 # FIXME: If I press `SPC gg` in gui, tmux status line gets hidden.  It should stay visible.
 # FIXME: If I press  `SPC gg` in an  unzoomed tmux pane, then press  it again to
 # leave goyo mode, the pane is zoomed.  The zoomed state should be preserved.
-nno <unique> <space>gg <cmd>call goyo#start('without_highlighting')<cr>
-nno <unique> <space>gG <cmd>call goyo#start('with_highlighting')<cr>
+nnoremap <unique> <Space>gg <Cmd>call goyo#start('without_highlighting')<CR>
+nnoremap <unique> <Space>gG <Cmd>call goyo#start('with_highlighting')<CR>
 
 # Commands {{{1
 
@@ -34,12 +34,12 @@ nno <unique> <space>gG <cmd>call goyo#start('with_highlighting')<cr>
 #    - syntax highlighting, no dimming
 #    - syntax highlighting, dimming
 #    ...
-com -nargs=? -bar -bang Goyo goyo#execute(<bang>0, <q-args>)
+command -nargs=? -bar -bang Goyo goyo#execute(<bang>0, <q-args>)
 
 # Autocmds {{{1
 
-augroup MyGoyo | au!
-    au User GoyoEnter goyo#enter()
-    au User GoyoLeave goyo#leave()
+augroup MyGoyo | autocmd!
+    autocmd User GoyoEnter goyo#enter()
+    autocmd User GoyoLeave goyo#leave()
 augroup END
 
