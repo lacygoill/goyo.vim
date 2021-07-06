@@ -1,8 +1,5 @@
 vim9script noclear
 
-if exists('loaded') | finish | endif
-var loaded = true
-
 # Interface {{{1
 def goyo#execute(bang: bool, dim: string) #{{{2
 # "dim" = dimensions
@@ -66,7 +63,7 @@ def goyo#enter() #{{{2
     augroup MyGoyo
         autocmd! * <buffer>
         # make sure cursor is not on leading whitespace
-        autocmd CursorHold <buffer> if getline('.')->match('^\s*\%' .. col('.') .. 'c\s') >= 0
+        autocmd CursorHold <buffer> if getline('.')->match('^\s*\%.c\s') >= 0
             |     execute 'normal! _'
             | endif
         # clear possible error message from command-line (e.g. `E486`)
@@ -382,7 +379,8 @@ def MapsResize(): list<string> #{{{2
         '+': '<Cmd>let t:goyo_dim.height += 2 * v:count1 <Bar> call <SID>ResizePads()<CR>',
         '-': '<Cmd>let t:goyo_dim.height -= 2 * v:count1 <Bar> call <SID>ResizePads()<CR>'
     }
-    var mapped: list<string> = keys(commands)
+    var mapped: list<string> = commands
+        ->keys()
         ->filter((_, v: string): bool => maparg("\<C-W>" .. v, 'n')->empty())
     for c in mapped
         execute 'nnoremap <C-W>' .. c .. ' ' .. commands[c]
@@ -514,7 +512,7 @@ def GoyoOff() #{{{2
     &winminheight = winminheight
     &winheight = winheight
 
-    for [k, v] in items(goyo_revert)
+    for [k, v] in goyo_revert->items()
         execute printf('&%s = %s', k, string(v))
     endfor
     # TODO: Why does junegunn re-set the colorscheme?
