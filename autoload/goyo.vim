@@ -31,9 +31,13 @@ def goyo#execute(bang: bool, dim: string) #{{{2
     endif
 enddef
 
-def goyo#start(how: string) #{{{2
-    with_highlighting = how == 'with_highlighting'
-    execute 'Goyo' .. (!exists('#goyo') ? ' 110' : '!')
+def goyo#start(without_hl = true) #{{{2
+    without_highlighting = without_hl
+    if exists('#goyo')
+        goyo#execute(true, '')
+    else
+        goyo#execute(false, '110')
+    endif
 enddef
 
 def goyo#enter() #{{{2
@@ -90,65 +94,16 @@ def goyo#enter() #{{{2
 
     Limelight
 
-    if !with_highlighting
-        # TODO: We need to ignore other highlight groups.{{{
-        #
-        # When we're in goyo mode, usually, we're only interested in the code.
-        # Anything else should be ignored.
-        # Many HGs are missing from the following list.
-        #
-        # I guess most (all?) the HGs we still want to ignore are defined in:
-        #
-        #     ~/.vim/pack/mine/opt/lg-lib/import/lg/styledComment.vim
-        #
-        # Problem: If we remove a  highlight group in `styledComment.vim`, we'll
-        # need to remove it here, and vice versa; duplication issue.
-        #}}}
-        # TODO: It seems that we don't need to reset the HGs once we leave goyo mode.{{{
-        #
-        # How does it work? Does goyo reload the colorscheme?
-        # Make sure the highlighting is properly restored when we leave goyo mode.
-        #}}}
-        var highlight_groups: list<string> =<< trim END
-            CommentItalic
-            CommentUnderlined
-            CommentPreProc
-            Folded
-            Todo
-            commentCodeSpan
-            markdownBlockquote
-            markdownListItem
-            markdownListItemCodeSpan
-            markdownOption
-            markdownPointer
-            markdownRule
-        END
-        if &filetype != 'help'
-            highlight_groups += ['Comment']
-        endif
-        for group in highlight_groups
-            execute 'highlight! link ' .. group .. ' Ignore'
-        endfor
+    if without_highlighting
+        var syntax_groups: list<string> = execute('syntax list')
+            ->split('\n')
+            ->filter((_, v: string): bool => v =~ '^\S\+\s\+xxx\s')
+            ->map((_, v: string) => v->matchstr('^\S\+'))
+            # we still want to keep the comments
+            ->filter((_, v: string): bool => v !~ '\ccomment')
 
-        highlight_groups =<< trim END
-            Conditional
-            Constant
-            Delimiter
-            Function
-            Identifier
-            Keyword
-            MatchParen
-            Number
-            Operator
-            PreProc
-            Special
-            Statement
-            String
-            Type
-            snipSnippet
-        END
-        for group in highlight_groups
-            execute 'highlight ' .. group .. ' term=NONE cterm=NONE ctermfg=NONE ctermbg=NONE gui=NONE guifg=NONE guibg=NONE'
+        for group in syntax_groups
+            execute 'syntax clear ' .. group
         endfor
     endif
 enddef
@@ -157,7 +112,7 @@ var concealcursor_save: string
 var conceallevel_save: number
 var winid_save: number
 var bufnr_save: number
-var with_highlighting: bool
+var without_highlighting: bool
 var auto_open_fold_was_enabled: bool
 
 def goyo#leave() #{{{2
@@ -307,7 +262,7 @@ def SetupPad( #{{{2
     var diff: number = winheight(0) - line('$') - (has('gui_running') ? 2 : 0)
     if diff > 0
         &l:modifiable = true
-        repeat([''], diff)->append(0)
+        ['']->repeat(diff)->append(0)
         normal! gg
         &l:modifiable = false
     endif
@@ -487,8 +442,7 @@ def GoyoOff() #{{{2
 
     var goyo_revert: dict<any> = t:goyo_revert
     var goyo_orig_buffer: number = t:goyo_master
-    var lnum: number = line('.')
-    var col: number = col('.')
+    var view: dict<number> = winsaveview()
 
     if tabpagenr() == 1
         tabnew
@@ -498,8 +452,8 @@ def GoyoOff() #{{{2
     tabclose
     execute 'normal! ' .. orig_tab .. 'gt'
     if winbufnr(0) == goyo_orig_buffer
-        # Doesn't work if window closed with `q`
-        execute printf('normal! %dG%d|', lnum, col)
+        view->winrestview()
+        normal! zv
     endif
 
     var winminwidth: number = remove(goyo_revert, 'winminwidth')
@@ -515,12 +469,12 @@ def GoyoOff() #{{{2
     for [k, v] in goyo_revert->items()
         execute printf('&%s = %s', k, string(v))
     endfor
-    # TODO: Why does junegunn re-set the colorscheme?
-    #
-    # For us, it's helpful,  because we clear some HGs while  in goyo mode, like
-    # `PreProc` used to highlight the title of  a comment; and we want them back
-    # when when we leave goyo mode.
+
+    # Necessary  because  we've  temporarily  reset  some  highlight  groups  in
+    # `Tranquilize()` (like  `StatusLine`), so  that they become  invisible.  We
+    # want them back now, with their original colors.
     execute 'colorscheme ' .. get(g:, 'colors_name', 'default')
+    doautocmd Syntax
 
     if exists('#User#GoyoLeave')
         doautocmd <nomodeline> User GoyoLeave

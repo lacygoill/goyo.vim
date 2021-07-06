@@ -19,8 +19,8 @@ xnoremap <unique> <Space>gg <C-\><C-N><Cmd>call goyo#island()<CR>
 # FIXME: If I press `SPC gg` in gui, tmux status line gets hidden.  It should stay visible.
 # FIXME: If I press  `SPC gg` in an  unzoomed tmux pane, then press  it again to
 # leave goyo mode, the pane is zoomed.  The zoomed state should be preserved.
-nnoremap <unique> <Space>gg <Cmd>call goyo#start('without_highlighting')<CR>
-nnoremap <unique> <Space>gG <Cmd>call goyo#start('with_highlighting')<CR>
+nnoremap <unique> <Space>gg <Cmd>call goyo#start()<CR>
+nnoremap <unique> <Space>gG <Cmd>call goyo#start(v:false)<CR>
 
 # Commands {{{1
 
