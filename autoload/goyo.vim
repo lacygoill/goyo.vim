@@ -321,7 +321,7 @@ def MapsNop(): list<string> #{{{2
     var mapped: list<string> = ['R', 'H', 'J', 'K', 'L', '|', '_']
         ->filter((_, v: string): bool => maparg("\<C-W>" .. v, 'n')->empty())
     for c: string in mapped
-        execute 'nnoremap <C-W>' .. escape(c, '|') .. ' <Nop>'
+        execute 'nnoremap <C-W>' .. c->escape('|') .. ' <Nop>'
     endfor
     return mapped
 enddef
@@ -437,7 +437,7 @@ def GoyoOff() #{{{2
     augroup! goyop
 
     for c: string in t:goyo_maps
-        execute 'nunmap <C-W>' .. escape(c, '|')
+        execute 'nunmap <C-W>' .. c->escape('|')
     endfor
 
     var goyo_revert: dict<any> = t:goyo_revert
