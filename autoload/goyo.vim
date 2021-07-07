@@ -102,7 +102,7 @@ def goyo#enter() #{{{2
             # we still want to keep the comments
             ->filter((_, v: string): bool => v !~ '\ccomment')
 
-        for group in syntax_groups
+        for group: string in syntax_groups
             execute 'syntax clear ' .. group
         endfor
     endif
@@ -294,7 +294,7 @@ enddef
 
 def Tranquilize() #{{{2
     var bg: string = GetColor('Normal', 'bg#')
-    for grp in ['NonText', 'FoldColumn', 'ColorColumn', 'VertSplit',
+    for grp: string in ['NonText', 'FoldColumn', 'ColorColumn', 'VertSplit',
         'StatusLine', 'StatusLineNC', 'SignColumn']
         if empty(bg)
             SetColor(grp, 'fg', 'black')
@@ -320,7 +320,7 @@ enddef
 def MapsNop(): list<string> #{{{2
     var mapped: list<string> = ['R', 'H', 'J', 'K', 'L', '|', '_']
         ->filter((_, v: string): bool => maparg("\<C-W>" .. v, 'n')->empty())
-    for c in mapped
+    for c: string in mapped
         execute 'nnoremap <C-W>' .. escape(c, '|') .. ' <Nop>'
     endfor
     return mapped
@@ -337,7 +337,7 @@ def MapsResize(): list<string> #{{{2
     var mapped: list<string> = commands
         ->keys()
         ->filter((_, v: string): bool => maparg("\<C-W>" .. v, 'n')->empty())
-    for c in mapped
+    for c: string in mapped
         execute 'nnoremap <C-W>' .. c .. ' ' .. commands[c]
     endfor
     return mapped
@@ -436,7 +436,7 @@ def GoyoOff() #{{{2
     autocmd! goyop
     augroup! goyop
 
-    for c in t:goyo_maps
+    for c: string in t:goyo_maps
         execute 'nunmap <C-W>' .. escape(c, '|')
     endfor
 
@@ -466,7 +466,7 @@ def GoyoOff() #{{{2
     &winminheight = winminheight
     &winheight = winheight
 
-    for [k, v] in goyo_revert->items()
+    for [k: string, v: any] in goyo_revert->items()
         execute printf('&%s = %s', k, string(v))
     endfor
 
